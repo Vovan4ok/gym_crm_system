@@ -1,16 +1,16 @@
 package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainingDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Training;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,35 +18,32 @@ import java.util.Optional;
 
 @Repository
 public class TrainingDAOImpl implements TrainingDAO {
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    @Autowired
-    public void setSessionFactory(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
-    }
 
     @Override
     public Training save(Training training) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         session.persist(training);
         return training;
     }
 
     @Override
     public Optional<Training> findById(Long trainingId) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         return Optional.ofNullable(session.get(Training.class, trainingId));
     }
 
     @Override
     public List<Training> findAll() {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         return session.createQuery("from Training", Training.class).list();
     }
 
     @Override
     public List<Training> findTraineeTrainings(String traineeUsername, LocalDate fromDate, LocalDate toDate, String trainerUsername, String trainingTypeName) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Training> cr =  cb.createQuery(Training.class);
         Root<Training> root = cr.from(Training.class);
@@ -57,7 +54,7 @@ public class TrainingDAOImpl implements TrainingDAO {
 
     @Override
     public List<Training> findTrainerTrainings(String trainerUsername, LocalDate fromDate, LocalDate toDate, String traineeUsername) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Training> cr =  cb.createQuery(Training.class);
         Root<Training> root = cr.from(Training.class);

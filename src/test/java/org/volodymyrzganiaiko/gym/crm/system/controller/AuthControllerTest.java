@@ -18,6 +18,7 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
 import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
+import org.volodymyrzganiaiko.gym.crm.system.resolver.CredentialsArgumentResolver;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
@@ -46,6 +47,7 @@ public class AuthControllerTest {
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new CredentialsArgumentResolver())
                 .build();
     }
 

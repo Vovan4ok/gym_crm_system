@@ -1,27 +1,26 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.time.LocalDate;
 
-@ApiModel(description = "Training session to be recorded. The training type is taken from the trainer's specialization.")
+@Schema(description = "Training session to be recorded. The training type is taken from the trainer's specialization.")
 public record AddTrainingRequest(
-        @ApiModelProperty(value = "Username of the trainee attending the session", required = true, example = "Tr.Ainee")
+        @Schema(description = "Username of the trainee attending the session", requiredMode = Schema.RequiredMode.REQUIRED, example = "Tr.Ainee")
         @NotBlank String traineeUsername,
 
-        @ApiModelProperty(value = "Username of the trainer conducting the session", required = true, example = "Tra.Iner")
+        @Schema(description = "Username of the trainer conducting the session", requiredMode = Schema.RequiredMode.REQUIRED, example = "Tra.Iner")
         @NotBlank String trainerUsername,
 
-        @ApiModelProperty(value = "Name of the training session", required = true, example = "Morning session")
+        @Schema(description = "Name of the training session", requiredMode = Schema.RequiredMode.REQUIRED, example = "Morning session")
         @NotBlank String trainingName,
 
-        @ApiModelProperty(value = "Date the session takes place on", required = true, example = "2026-07-20")
+        @Schema(description = "Date the session takes place on", requiredMode = Schema.RequiredMode.REQUIRED, example = "2026-07-20")
         @NotNull LocalDate trainingDate,
 
-        @ApiModelProperty(value = "Duration of the session in minutes. Must be positive.", required = true, example = "60")
+        @Schema(description = "Duration of the session in minutes. Must be positive.", requiredMode = Schema.RequiredMode.REQUIRED, example = "60")
         @NotNull @Positive Integer trainingDuration) {
 }

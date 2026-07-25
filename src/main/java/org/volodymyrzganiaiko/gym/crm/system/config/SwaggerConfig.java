@@ -1,42 +1,37 @@
 package org.volodymyrzganiaiko.gym.crm.system.config;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.Contact;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
-
-import java.util.Collections;
-
+import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
 
 @Configuration
-@EnableSwagger2
 public class SwaggerConfig {
-    @Bean
-    public Docket api() {
-        return new Docket(DocumentationType.SWAGGER_2)
-                .useDefaultResponseMessages(false)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("org.volodymyrzganiaiko.gym.crm.system.controller"))
-                .paths(PathSelectors.any())
-                .build()
-                .apiInfo(apiDetails());
+    static {
+        SpringDocUtils.getConfig().addRequestWrapperToIgnore(Credentials.class);
     }
 
-    private ApiInfo apiDetails() {
-        return new ApiInfo(
-                "Gym System API",
-                "Sample REST API Documentation using Springfox",
-                "1.0.0",
-                "Terms of Service URL",
-                new Contact("Volodymyr Zganiaiko", "some.url.com", "vladimirzganiaiko@gmail.com"),
-                "API License",
-                "LICENSE URL",
-                Collections.emptyList()
-        );
+    @Bean
+    public OpenAPI api() {
+        return new OpenAPI().info(apiDetails());
+    }
+
+    private Info apiDetails() {
+        return new Info()
+                .title("Gym System API")
+                .description("Sample REST API Documentation using springdoc-openapi")
+                .version("1.0.0")
+                .termsOfService("Terms of Service URL")
+                .contact(new Contact()
+                        .name("Volodymyr Zganiaiko")
+                        .url("some.url.com")
+                        .email("vladimirzganiaiko@gmail.com"))
+                .license(new License()
+                        .name("API License")
+                        .url("LICENSE URL"));
     }
 }

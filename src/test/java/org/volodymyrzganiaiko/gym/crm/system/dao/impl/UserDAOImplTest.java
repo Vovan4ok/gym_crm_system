@@ -1,12 +1,11 @@
 package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 
-import org.hibernate.SessionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Import;
 import org.volodymyrzganiaiko.gym.crm.system.dao.DaoTestConfig;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TraineeDAO;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainerDAO;
@@ -23,9 +22,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = DaoTestConfig.class)
-@Transactional
+@DataJpaTest
+@Import(DaoTestConfig.class)
 public class UserDAOImplTest {
     @Autowired
     private TraineeDAO traineeDAO;
@@ -36,8 +34,8 @@ public class UserDAOImplTest {
     @Autowired
     private UserDAO userDAO;
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Test
     public void save2UsersWithSameUsernames_throwsException() {
@@ -90,7 +88,7 @@ public class UserDAOImplTest {
     }
 
     private void flushAndClear() {
-        sessionFactory.getCurrentSession().flush();
-        sessionFactory.getCurrentSession().clear();
+        entityManager.flush();
+        entityManager.clear();
     }
 }

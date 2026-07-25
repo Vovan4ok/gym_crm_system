@@ -1,14 +1,13 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(description = "Credentials issued for a newly registered trainee")
+@Schema(description = "Credentials issued for a newly registered trainee")
 public record TraineeRegistrationDTO(
-        @ApiModelProperty(value = "Username generated from the first and last name, with a suffix when that combination is already taken", example = "John.Doe")
+        @Schema(description = "Username generated from the first and last name, with a suffix when that combination is already taken", example = "John.Doe")
         String username,
 
-        @ApiModelProperty(value = "Generated password. Returned in this response only and stored encoded, so it cannot be retrieved again.")
+        @Schema(description = "Generated password. Returned in this response only and stored encoded, so it cannot be retrieved again.")
         String password) {
     @Override
     public String toString() {

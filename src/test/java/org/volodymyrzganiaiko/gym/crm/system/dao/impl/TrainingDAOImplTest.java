@@ -1,16 +1,15 @@
 package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 
-import org.hibernate.SessionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Import;
 import org.volodymyrzganiaiko.gym.crm.system.dao.DaoTestConfig;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TraineeDAO;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainerDAO;
@@ -26,9 +25,8 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = DaoTestConfig.class)
-@Transactional
+@DataJpaTest
+@Import(DaoTestConfig.class)
 public class TrainingDAOImplTest {
     @Autowired
     private TrainingDAO trainingDAO;
@@ -39,8 +37,8 @@ public class TrainingDAOImplTest {
     @Autowired
     private TrainerDAO trainerDAO;
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private Trainee trainee;
     private Trainer yogaTrainer;
@@ -67,8 +65,8 @@ public class TrainingDAOImplTest {
     }
 
     private void flushAndClear() {
-        sessionFactory.getCurrentSession().flush();
-        sessionFactory.getCurrentSession().clear();
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test

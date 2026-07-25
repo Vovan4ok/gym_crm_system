@@ -1,13 +1,12 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(description = "Training type available in the system")
+@Schema(description = "Training type available in the system")
 public record TrainingTypeResponse(
-        @ApiModelProperty(value = "Identifier of the training type", example = "2")
+        @Schema(description = "Identifier of the training type", example = "2")
         Long id,
 
-        @ApiModelProperty(value = "Display name of the training type", example = "Cardio")
+        @Schema(description = "Display name of the training type", example = "Cardio")
         String name) {
 }

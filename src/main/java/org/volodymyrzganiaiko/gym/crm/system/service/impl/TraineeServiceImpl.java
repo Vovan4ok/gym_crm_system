@@ -13,9 +13,9 @@ import org.volodymyrzganiaiko.gym.crm.system.service.TraineeService;
 
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Validator;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;

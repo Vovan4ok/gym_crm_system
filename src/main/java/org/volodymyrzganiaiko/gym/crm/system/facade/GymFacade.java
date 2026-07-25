@@ -10,6 +10,7 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
+import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
 
 import java.time.LocalDate;
@@ -26,12 +27,13 @@ public class GymFacade {
     private final CredentialsService credentialsService;
     private final UserService userService;
     private final DtoMapper mapper;
+    private final GymMetrics gymMetrics;
 
     private static final int MAX_REGISTRATION_ATTEMPTS = 3;
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, AuthenticationService authenticationService, CredentialsService credentialsService, UserService userService, DtoMapper mapper) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, AuthenticationService authenticationService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -40,6 +42,7 @@ public class GymFacade {
         this.credentialsService = credentialsService;
         this.userService = userService;
         this.mapper = mapper;
+        this.gymMetrics = gymMetrics;
     }
 
     public void login(Credentials credentials) {
@@ -135,7 +138,7 @@ public class GymFacade {
     @Transactional
     public void createTraining(Credentials credentials, AddTrainingRequest req) {
         authenticationService.check(credentials);
-        trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration());
+        gymMetrics.timeTrainingCreation(() -> trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration()));
     }
 
     @Transactional(readOnly = true)
@@ -155,9 +158,12 @@ public class GymFacade {
     private <R> R registerWithRetry(String role, Supplier<R> registration) {
         for (int i = 1; i <= MAX_REGISTRATION_ATTEMPTS; i++) {
             try {
-                return registration.get();
+                R result = registration.get();
+                gymMetrics.recordRegistration(role.toLowerCase());
+                return result;
             } catch (DataIntegrityViolationException e) {
                 log.warn("{} attempt of {} registration was unsuccessful", i, role.toLowerCase());
+                gymMetrics.recordUsernameCollision(role.toLowerCase());
                 if (i == MAX_REGISTRATION_ATTEMPTS) {
                     throw new IllegalStateException(role + " creation failed after " + MAX_REGISTRATION_ATTEMPTS + " attempts", e);
                 }

@@ -1,19 +1,18 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
-@ApiModel(description = "New state of a trainer profile. The specialization cannot be changed through this endpoint.")
+@Schema(description = "New state of a trainer profile. The specialization cannot be changed through this endpoint.")
 public record UpdateTrainerRequest(
-        @ApiModelProperty(value = "First name of the trainer", required = true, example = "Jane")
+        @Schema(description = "First name of the trainer", requiredMode = Schema.RequiredMode.REQUIRED, example = "Jane")
         @NotBlank String firstName,
 
-        @ApiModelProperty(value = "Last name of the trainer", required = true, example = "Roe")
+        @Schema(description = "Last name of the trainer", requiredMode = Schema.RequiredMode.REQUIRED, example = "Roe")
         @NotBlank String lastName,
 
-        @ApiModelProperty(value = "Activation state of the profile", required = true, example = "true")
+        @Schema(description = "Activation state of the profile", requiredMode = Schema.RequiredMode.REQUIRED, example = "true")
         @NotNull Boolean isActive) {
 }

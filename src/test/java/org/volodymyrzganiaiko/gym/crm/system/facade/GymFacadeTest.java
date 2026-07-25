@@ -10,6 +10,7 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
+import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
 
 import java.time.LocalDate;
@@ -47,6 +48,9 @@ class GymFacadeTest {
     
     @Mock
     private CredentialsService credentialsService;
+
+    @Mock
+    private GymMetrics gymMetrics;
 
     @InjectMocks
     GymFacade gymFacade;
@@ -358,6 +362,11 @@ class GymFacadeTest {
     public void createTraining_success() {
         Credentials credentials = new Credentials("John.Doe", "random");
         AddTrainingRequest req = new AddTrainingRequest("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
+
+        doAnswer(inv -> {
+            inv.getArgument(0, Runnable.class).run();
+            return null;
+        }).when(gymMetrics).timeTrainingCreation(any());
 
         gymFacade.createTraining(credentials, req);
 

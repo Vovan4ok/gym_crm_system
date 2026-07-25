@@ -1,12 +1,11 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
-@ApiModel(description = "New password for the authenticated user")
+@Schema(description = "New password for the authenticated user")
 public record ChangePasswordRequest(
-        @ApiModelProperty(value = "Password that replaces the current one. Must not be blank.", required = true)
+        @Schema(description = "Password that replaces the current one. Must not be blank.", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank String newPassword) {
 }

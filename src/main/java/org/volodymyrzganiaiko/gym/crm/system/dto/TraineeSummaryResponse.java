@@ -1,16 +1,15 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(description = "Short trainee reference used inside a trainer profile")
+@Schema(description = "Short trainee reference used inside a trainer profile")
 public record TraineeSummaryResponse(
-        @ApiModelProperty(value = "Generated username of the trainee", example = "Tr.Ainee")
+        @Schema(description = "Generated username of the trainee", example = "Tr.Ainee")
         String username,
 
-        @ApiModelProperty(value = "First name of the trainee", example = "John")
+        @Schema(description = "First name of the trainee", example = "John")
         String firstName,
 
-        @ApiModelProperty(value = "Last name of the trainee", example = "Doe")
+        @Schema(description = "Last name of the trainee", example = "Doe")
         String lastName) {
 }

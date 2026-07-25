@@ -1,26 +1,25 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
-@ApiModel(description = "New state of a trainee profile. Every field is overwritten, so omitting an optional field clears it.")
+@Schema(description = "New state of a trainee profile. Every field is overwritten, so omitting an optional field clears it.")
 public record UpdateTraineeRequest (
-        @ApiModelProperty(value = "First name of the trainee", required = true, example = "John")
+        @Schema(description = "First name of the trainee", requiredMode = Schema.RequiredMode.REQUIRED, example = "John")
         @NotBlank String firstName,
 
-        @ApiModelProperty(value = "Last name of the trainee", required = true, example = "Doe")
+        @Schema(description = "Last name of the trainee", requiredMode = Schema.RequiredMode.REQUIRED, example = "Doe")
         @NotBlank String lastName,
 
-        @ApiModelProperty(value = "Activation state of the profile", required = true, example = "true")
+        @Schema(description = "Activation state of the profile", requiredMode = Schema.RequiredMode.REQUIRED, example = "true")
         @NotNull Boolean isActive,
 
-        @ApiModelProperty(value = "Date of birth, optional", example = "1990-05-15")
+        @Schema(description = "Date of birth, optional", example = "1990-05-15")
         LocalDate dateOfBirth,
 
-        @ApiModelProperty(value = "Postal address, optional", example = "Main st. 1")
+        @Schema(description = "Postal address, optional", example = "Main st. 1")
         String address) {
 }

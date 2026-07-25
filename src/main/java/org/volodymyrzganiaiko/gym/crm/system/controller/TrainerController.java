@@ -1,10 +1,10 @@
 package org.volodymyrzganiaiko.gym.crm.system.controller;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -15,23 +15,23 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.TrainingType;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/trainers")
-@Api(tags = "Trainers")
+@Tag(name = "Trainers")
 public class TrainerController {
     @Autowired
     private GymFacade gymFacade;
 
     @PostMapping
-    @ApiOperation(value = "Register a trainer", notes = "Creates a trainer and returns the generated username together with the generated password. No authentication is required.")
+    @Operation(summary = "Register a trainer", description = "Creates a trainer and returns the generated username together with the generated password. No authentication is required.")
     @ApiResponses({
-            @ApiResponse(code = 201, message = "Trainer was successfully created"),
-            @ApiResponse(code = 400, message = "The request body failed validation"),
-            @ApiResponse(code = 404, message = "The specialization was not found")
+            @ApiResponse(responseCode = "201", description = "Trainer was successfully created"),
+            @ApiResponse(responseCode = "400", description = "The request body failed validation"),
+            @ApiResponse(responseCode = "404", description = "The specialization was not found")
     })
     public ResponseEntity<TrainerRegistrationDTO> createTrainer(@Valid @RequestBody TrainerRegistrationRequest req) {
         Trainer trainer = mapTrainer(req.firstName(), req.lastName(), null, new TrainingType(req.specializationId(), null));
@@ -39,49 +39,49 @@ public class TrainerController {
     }
 
     @GetMapping("/{username}")
-    @ApiOperation(value = "Get a trainer profile", notes = "Returns the profile of the trainer identified by the path variable, including the list of assigned trainees.")
+    @Operation(summary = "Get a trainer profile", description = "Returns the profile of the trainer identified by the path variable, including the list of assigned trainees.")
     @ApiResponses({
-            @ApiResponse(code = 401, message = "Wrong username or password"),
-            @ApiResponse(code = 404, message = "The trainer was not found")
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
-    public ResponseEntity<TrainerProfileResponse> getProfile(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass) {
-        return ResponseEntity.ok(gymFacade.getTrainerProfile(new Credentials(authUser, authPass), username));
+    public ResponseEntity<TrainerProfileResponse> getProfile(@PathVariable String username, Credentials credentials) {
+        return ResponseEntity.ok(gymFacade.getTrainerProfile(credentials, username));
     }
 
     @PutMapping("/{username}")
-    @ApiOperation(value = "Update a trainer profile", notes = "Overwrites the editable fields of the trainer and returns the updated profile. The specialization cannot be changed.")
+    @Operation(summary = "Update a trainer profile", description = "Overwrites the editable fields of the trainer and returns the updated profile. The specialization cannot be changed.")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "The request body failed validation"),
-            @ApiResponse(code = 401, message = "Wrong username or password"),
-            @ApiResponse(code = 404, message = "The trainer was not found")
+            @ApiResponse(responseCode = "400", description = "The request body failed validation"),
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
-    public ResponseEntity<TrainerProfileResponse> updateProfile(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @Valid @RequestBody UpdateTrainerRequest req) {
+    public ResponseEntity<TrainerProfileResponse> updateProfile(@PathVariable String username, Credentials credentials, @Valid @RequestBody UpdateTrainerRequest req) {
         Trainer trainer = mapTrainer(req.firstName(), req.lastName(), req.isActive(), null);
-        return ResponseEntity.ok(gymFacade.updateTrainerProfile(new Credentials(authUser, authPass), username, trainer));
+        return ResponseEntity.ok(gymFacade.updateTrainerProfile(credentials, username, trainer));
     }
 
     @PatchMapping("/{username}/status")
-    @ApiOperation(value = "Activate or deactivate a trainer", notes = "Switches the active flag of the trainer. The operation is not idempotent: setting the flag to the value it already has is rejected.")
+    @Operation(summary = "Activate or deactivate a trainer", description = "Switches the active flag of the trainer. The operation is not idempotent: setting the flag to the value it already has is rejected.")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "The request body failed validation"),
-            @ApiResponse(code = 401, message = "Wrong username or password"),
-            @ApiResponse(code = 404, message = "The trainer was not found"),
-            @ApiResponse(code = 409, message = "The trainer is already in the requested state")
+            @ApiResponse(responseCode = "400", description = "The request body failed validation"),
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "404", description = "The trainer was not found"),
+            @ApiResponse(responseCode = "409", description = "The trainer is already in the requested state")
     })
-    public ResponseEntity<Void> changeStatus(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @Valid @RequestBody UpdateStatusRequest req) {
-        gymFacade.changeTrainerStatus(new Credentials(authUser, authPass), username, req.isActive());
+    public ResponseEntity<Void> changeStatus(@PathVariable String username, Credentials credentials, @Valid @RequestBody UpdateStatusRequest req) {
+        gymFacade.changeTrainerStatus(credentials, username, req.isActive());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{username}/trainings")
-    @ApiOperation(value = "List the trainings of a trainer", notes = "Returns the trainings of the trainer. Every filter is optional; omitting all of them returns the full list.")
+    @Operation(summary = "List the trainings of a trainer", description = "Returns the trainings of the trainer. Every filter is optional; omitting all of them returns the full list.")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "A date filter is not in the yyyy-MM-dd format"),
-            @ApiResponse(code = 401, message = "Wrong username or password"),
-            @ApiResponse(code = 404, message = "The trainer was not found")
+            @ApiResponse(responseCode = "400", description = "A date filter is not in the yyyy-MM-dd format"),
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
-    public ResponseEntity<List<TrainerTrainingResponse>> getTrainings(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @ApiParam(value = "Lower bound of the training date, inclusive", example = "2026-01-31") @RequestParam(required = false, value = "periodFrom") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from, @ApiParam(value = "Upper bound of the training date, inclusive", example = "2026-12-31") @RequestParam(required = false, value = "periodTo") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @ApiParam(value = "Filter by the trainee's first name") @RequestParam(required = false) String traineeName) {
-        return ResponseEntity.ok(gymFacade.getTrainerTrainings(new Credentials(authUser, authPass), username, from, to, traineeName));
+    public ResponseEntity<List<TrainerTrainingResponse>> getTrainings(@PathVariable String username, Credentials credentials, @Parameter(description = "Lower bound of the training date, inclusive", example = "2026-01-31") @RequestParam(required = false, value = "periodFrom") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from, @Parameter(description = "Upper bound of the training date, inclusive", example = "2026-12-31") @RequestParam(required = false, value = "periodTo") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @Parameter(description = "Filter by the trainee's first name") @RequestParam(required = false) String traineeName) {
+        return ResponseEntity.ok(gymFacade.getTrainerTrainings(credentials, username, from, to, traineeName));
     }
 
     private Trainer mapTrainer(String firstName, String lastName, Boolean isActive, TrainingType specialization) {

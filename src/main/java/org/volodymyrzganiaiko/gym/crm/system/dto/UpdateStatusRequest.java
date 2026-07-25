@@ -1,12 +1,11 @@
 package org.volodymyrzganiaiko.gym.crm.system.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
-@ApiModel(description = "Requested activation state. Setting the state the profile already has is rejected.")
+@Schema(description = "Requested activation state. Setting the state the profile already has is rejected.")
 public record UpdateStatusRequest (
-        @ApiModelProperty(value = "True activates the profile, false deactivates it", required = true, example = "true")
+        @Schema(description = "True activates the profile, false deactivates it", requiredMode = Schema.RequiredMode.REQUIRED, example = "true")
         @NotNull Boolean isActive) {
 }

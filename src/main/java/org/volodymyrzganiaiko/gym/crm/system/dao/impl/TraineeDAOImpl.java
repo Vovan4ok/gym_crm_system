@@ -1,8 +1,8 @@
 package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TraineeDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
@@ -12,23 +12,20 @@ import java.util.Optional;
 
 @Repository
 public class TraineeDAOImpl implements TraineeDAO {
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    @Autowired
-    public void setSessionFactory(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
-    }
 
     @Override
     public Trainee save(Trainee trainee) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         session.persist(trainee);
         return trainee;
     }
 
     @Override
     public Trainee update(Trainee trainee) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         return (Trainee) session.merge(trainee);
     }
 
@@ -39,7 +36,7 @@ public class TraineeDAOImpl implements TraineeDAO {
             return false;
         }
         Trainee trainee = traineeOpt.get();
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         session.createQuery("delete from Training t where t.trainee.id = :id").setParameter("id", trainee.getId()).executeUpdate();
         session.remove(trainee);
         return true;
@@ -47,19 +44,19 @@ public class TraineeDAOImpl implements TraineeDAO {
 
     @Override
     public Optional<Trainee> findById(Long traineeId) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         return Optional.ofNullable(session.get(Trainee.class, traineeId));
     }
 
     @Override
     public Optional<Trainee> findByUsername(String username) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         return session.createQuery("from Trainee t where t.username = :username", Trainee.class).setParameter("username", username).uniqueResultOptional();
     }
 
     @Override
     public List<Trainee> findAll() {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = entityManager.unwrap(Session.class);
         return session.createQuery("from Trainee", Trainee.class).list();
     }
 }

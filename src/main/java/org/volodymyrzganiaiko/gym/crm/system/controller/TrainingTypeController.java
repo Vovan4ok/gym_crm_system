@@ -1,13 +1,12 @@
 package org.volodymyrzganiaiko.gym.crm.system.controller;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
@@ -18,17 +17,17 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/training-types")
-@Api(tags = "Training types")
+@Tag(name = "Training types")
 public class TrainingTypeController {
     @Autowired
     private GymFacade gymFacade;
 
     @GetMapping
-    @ApiOperation(value = "List training types", notes = "Returns every training type available in the system.")
+    @Operation(summary = "List training types", description = "Returns every training type available in the system.")
     @ApiResponses({
-            @ApiResponse(code = 401, message = "Wrong username or password")
+            @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
-    public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes(@RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass) {
-        return ResponseEntity.ok(gymFacade.getTrainingTypes(new Credentials(authUser, authPass)));
+    public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes(Credentials credentials) {
+        return ResponseEntity.ok(gymFacade.getTrainingTypes(credentials));
     }
 }

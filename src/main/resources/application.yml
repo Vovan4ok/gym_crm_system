@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: gym-crm-system
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  web:
+    locale: en
+    locale-resolver: fixed
+  profiles:
+    active: local
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Without this the UI ships with petstore.swagger.io hard-coded as its spec URL
+    disable-swagger-default-url: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: "Gym CRM System"
+    version: @project.version@

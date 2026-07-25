@@ -1,13 +1,12 @@
 package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 
-import org.hibernate.SessionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Import;
 import org.volodymyrzganiaiko.gym.crm.system.dao.DaoTestConfig;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TraineeDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
@@ -18,15 +17,14 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = DaoTestConfig.class)
-@Transactional
+@DataJpaTest
+@Import(DaoTestConfig.class)
 public class TraineeDAOImplTest {
     @Autowired
     private TraineeDAO traineeDAO;
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private Trainee trainee;
 
@@ -36,8 +34,8 @@ public class TraineeDAOImplTest {
     }
 
     private void flushAndClear() {
-        sessionFactory.getCurrentSession().flush();
-        sessionFactory.getCurrentSession().clear();
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -93,7 +91,7 @@ public class TraineeDAOImplTest {
         Optional<Trainee> foundTraineeOpt = traineeDAO.findByUsername("John.Doe");
         assertTrue(foundTraineeOpt.isEmpty());
 
-        Long count = sessionFactory.getCurrentSession().createQuery("select count(u) from User u where u.username = :username", Long.class).setParameter("username", "John.Doe").uniqueResult();
+        Long count = entityManager.createQuery("select count(u) from User u where u.username = :username", Long.class).setParameter("username", "John.Doe").getSingleResult();
         assertEquals(0L, count);
     }
 }
