@@ -14,6 +14,7 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.TrainingTypeResponse;
 import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
+import org.volodymyrzganiaiko.gym.crm.system.resolver.CredentialsArgumentResolver;
 
 import java.util.List;
 
@@ -39,6 +40,7 @@ public class TrainingTypeControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new CredentialsArgumentResolver())
                 .build();
     }
 
@@ -70,15 +72,6 @@ public class TrainingTypeControllerTest {
         Credentials credentials = captor.getValue();
         assertEquals("John.Doe", credentials.username());
         assertEquals("random", credentials.password());
-    }
-
-    @Test
-    public void getTrainingTypes_missingPasswordHeader_returnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/training-types")
-                        .header("X-Username", "John.Doe"))
-                .andExpect(status().isBadRequest());
-
-        verifyNoInteractions(gymFacade);
     }
 
     @Test

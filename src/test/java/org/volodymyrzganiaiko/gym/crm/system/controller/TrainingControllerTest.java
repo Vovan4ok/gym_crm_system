@@ -17,6 +17,7 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.AddTrainingRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
+import org.volodymyrzganiaiko.gym.crm.system.resolver.CredentialsArgumentResolver;
 
 import java.time.LocalDate;
 
@@ -46,6 +47,7 @@ public class TrainingControllerTest {
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new CredentialsArgumentResolver())
                 .build();
     }
 

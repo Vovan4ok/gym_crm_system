@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
@@ -28,7 +27,7 @@ public class TrainingTypeController {
     @ApiResponses({
             @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
-    public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes(@RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass) {
-        return ResponseEntity.ok(gymFacade.getTrainingTypes(new Credentials(authUser, authPass)));
+    public ResponseEntity<List<TrainingTypeResponse>> getTrainingTypes(Credentials credentials) {
+        return ResponseEntity.ok(gymFacade.getTrainingTypes(credentials));
     }
 }

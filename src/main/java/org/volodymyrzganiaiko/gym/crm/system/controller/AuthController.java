@@ -25,8 +25,8 @@ public class AuthController {
     @ApiResponses({
             @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
-    public ResponseEntity<Void> login(@RequestHeader("X-Username") String username, @RequestHeader("X-Password") String password) {
-        gymFacade.login(new Credentials(username, password));
+    public ResponseEntity<Void> login(Credentials credentials) {
+        gymFacade.login(credentials);
         return ResponseEntity.ok().build();
     }
 
@@ -36,8 +36,8 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "The new password is missing or does not satisfy the constraints"),
             @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
-    public ResponseEntity<Void> changePassword(@RequestHeader("X-Username") String username, @RequestHeader("X-Password") String password, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        gymFacade.changeLogin(new Credentials(username, password), changePasswordRequest.newPassword());
+    public ResponseEntity<Void> changePassword(Credentials credentials, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        gymFacade.changeLogin(credentials, changePasswordRequest.newPassword());
         return ResponseEntity.ok().build();
     }
 }

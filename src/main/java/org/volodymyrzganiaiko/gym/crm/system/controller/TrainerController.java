@@ -44,8 +44,8 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Wrong username or password"),
             @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
-    public ResponseEntity<TrainerProfileResponse> getProfile(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass) {
-        return ResponseEntity.ok(gymFacade.getTrainerProfile(new Credentials(authUser, authPass), username));
+    public ResponseEntity<TrainerProfileResponse> getProfile(@PathVariable String username, Credentials credentials) {
+        return ResponseEntity.ok(gymFacade.getTrainerProfile(credentials, username));
     }
 
     @PutMapping("/{username}")
@@ -55,9 +55,9 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Wrong username or password"),
             @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
-    public ResponseEntity<TrainerProfileResponse> updateProfile(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @Valid @RequestBody UpdateTrainerRequest req) {
+    public ResponseEntity<TrainerProfileResponse> updateProfile(@PathVariable String username, Credentials credentials, @Valid @RequestBody UpdateTrainerRequest req) {
         Trainer trainer = mapTrainer(req.firstName(), req.lastName(), req.isActive(), null);
-        return ResponseEntity.ok(gymFacade.updateTrainerProfile(new Credentials(authUser, authPass), username, trainer));
+        return ResponseEntity.ok(gymFacade.updateTrainerProfile(credentials, username, trainer));
     }
 
     @PatchMapping("/{username}/status")
@@ -68,8 +68,8 @@ public class TrainerController {
             @ApiResponse(responseCode = "404", description = "The trainer was not found"),
             @ApiResponse(responseCode = "409", description = "The trainer is already in the requested state")
     })
-    public ResponseEntity<Void> changeStatus(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @Valid @RequestBody UpdateStatusRequest req) {
-        gymFacade.changeTrainerStatus(new Credentials(authUser, authPass), username, req.isActive());
+    public ResponseEntity<Void> changeStatus(@PathVariable String username, Credentials credentials, @Valid @RequestBody UpdateStatusRequest req) {
+        gymFacade.changeTrainerStatus(credentials, username, req.isActive());
         return ResponseEntity.ok().build();
     }
 
@@ -80,8 +80,8 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Wrong username or password"),
             @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
-    public ResponseEntity<List<TrainerTrainingResponse>> getTrainings(@PathVariable String username, @RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @Parameter(description = "Lower bound of the training date, inclusive", example = "2026-01-31") @RequestParam(required = false, value = "periodFrom") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from, @Parameter(description = "Upper bound of the training date, inclusive", example = "2026-12-31") @RequestParam(required = false, value = "periodTo") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @Parameter(description = "Filter by the trainee's first name") @RequestParam(required = false) String traineeName) {
-        return ResponseEntity.ok(gymFacade.getTrainerTrainings(new Credentials(authUser, authPass), username, from, to, traineeName));
+    public ResponseEntity<List<TrainerTrainingResponse>> getTrainings(@PathVariable String username, Credentials credentials, @Parameter(description = "Lower bound of the training date, inclusive", example = "2026-01-31") @RequestParam(required = false, value = "periodFrom") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from, @Parameter(description = "Upper bound of the training date, inclusive", example = "2026-12-31") @RequestParam(required = false, value = "periodTo") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, @Parameter(description = "Filter by the trainee's first name") @RequestParam(required = false) String traineeName) {
+        return ResponseEntity.ok(gymFacade.getTrainerTrainings(credentials, username, from, to, traineeName));
     }
 
     private Trainer mapTrainer(String firstName, String lastName, Boolean isActive, TrainingType specialization) {

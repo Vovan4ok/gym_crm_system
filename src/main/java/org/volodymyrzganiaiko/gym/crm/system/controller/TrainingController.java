@@ -29,8 +29,8 @@ public class TrainingController {
             @ApiResponse(responseCode = "401", description = "Wrong username or password"),
             @ApiResponse(responseCode = "404", description = "The trainee or the trainer was not found")
     })
-    public ResponseEntity<Void> addTraining(@RequestHeader("X-Username") String authUser, @RequestHeader("X-Password") String authPass, @Valid @RequestBody AddTrainingRequest req) {
-        gymFacade.createTraining(new Credentials(authUser, authPass), req);
+    public ResponseEntity<Void> addTraining(Credentials credentials, @Valid @RequestBody AddTrainingRequest req) {
+        gymFacade.createTraining(credentials, req);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
