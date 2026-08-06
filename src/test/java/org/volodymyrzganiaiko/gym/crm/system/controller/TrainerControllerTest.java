@@ -18,7 +18,7 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
-import org.volodymyrzganiaiko.gym.crm.system.resolver.CredentialsArgumentResolver;
+import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,6 +38,9 @@ public class TrainerControllerTest {
     @Mock
     private GymFacade gymFacade;
 
+    @Mock
+    private JwtService jwtService;
+
     @InjectMocks
     private TrainerController controller;
 
@@ -51,7 +54,6 @@ public class TrainerControllerTest {
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(new CredentialsArgumentResolver())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .build();
     }
@@ -62,41 +64,32 @@ public class TrainerControllerTest {
                 "Tra.Iner", "John", "Doe",
                 new TrainingTypeResponse(2L, "Cardio"), true, List.of());
 
-        when(gymFacade.getTrainerProfile(any(), any())).thenReturn(response);
+        when(gymFacade.getTrainerProfile(any())).thenReturn(response);
 
-        mockMvc.perform(get("/api/trainers/{username}", "Tra.Iner")
-                        .header("X-Username", "John.Doe")
-                        .header("X-Password", "random"))
+        mockMvc.perform(get("/api/trainers/{username}", "Tra.Iner"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("Tra.Iner"))
                 .andExpect(jsonPath("$.firstName").value("John"))
                 .andExpect(jsonPath("$.specialization.name").value("Cardio"))
                 .andExpect(jsonPath("$.isActive").value(true));
 
-        ArgumentCaptor<Credentials> captor = ArgumentCaptor.forClass(Credentials.class);
-        verify(gymFacade).getTrainerProfile(captor.capture(), eq("Tra.Iner"));
-
-        Credentials credentials = captor.getValue();
-        assertEquals("John.Doe", credentials.username());
-        assertEquals("random", credentials.password());
+        verify(gymFacade).getTrainerProfile(eq("Tra.Iner"));
     }
 
     @Test
     public void getProfile_notFound() throws Exception {
-        when(gymFacade.getTrainerProfile(any(), any()))
+        when(gymFacade.getTrainerProfile(any()))
                 .thenThrow(new IllegalArgumentException("Trainer with the username Tra.Iner was not found"));
 
-        mockMvc.perform(get("/api/trainers/{username}", "Tra.Iner")
-                .header("X-Username", "John.Doe")
-                .header("X-Password", "random"))
+        mockMvc.perform(get("/api/trainers/{username}", "Tra.Iner"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
     public void createTrainer_success() throws Exception {
-        when(gymFacade.createTrainer(any(Trainer.class)))
-                .thenReturn(new TrainerRegistrationDTO("John.Doe", "generatedPass"));
+        when(gymFacade.createTrainer(any())).thenReturn(new TrainerRegistrationDTO("John.Doe", "rawPass"));
+        when(jwtService.generateToken("John.Doe")).thenReturn("test.jwt.token");
 
         TrainerRegistrationRequest request = new TrainerRegistrationRequest("John", "Doe", 2L);
         String json = objectMapper.writeValueAsString(request);
@@ -106,7 +99,8 @@ public class TrainerControllerTest {
                         .content(json))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("John.Doe"))
-                .andExpect(jsonPath("$.password").value("generatedPass"));
+                .andExpect(jsonPath("$.password").value("rawPass"))
+                .andExpect(jsonPath("$.token").value("test.jwt.token"));
 
         ArgumentCaptor<Trainer> trainerCaptor = ArgumentCaptor.forClass(Trainer.class);
         verify(gymFacade).createTrainer(trainerCaptor.capture());
@@ -119,14 +113,12 @@ public class TrainerControllerTest {
     @Test
     public void changeStatus_conflict() throws Exception {
         doThrow(new IllegalStateException("Trainer is already active"))
-                .when(gymFacade).changeTrainerStatus(any(), any(), any());
+                .when(gymFacade).changeTrainerStatus(any(), any());
 
         UpdateStatusRequest request = new UpdateStatusRequest(true);
         String json = objectMapper.writeValueAsString(request);
 
         mockMvc.perform(patch("/api/trainers/{username}/status", "Tra.Iner")
-                .header("X-Username", "John.Doe")
-                .header("X-Password", "random")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isConflict())
@@ -139,14 +131,12 @@ public class TrainerControllerTest {
         TrainerProfileResponse response = new TrainerProfileResponse("Tra.Iner", "Jane", "Roe",
                 new TrainingTypeResponse(2L, "Cardio"), false, List.of());
 
-        when(gymFacade.updateTrainerProfile(any(), any(), any(Trainer.class))).thenReturn(response);
+        when(gymFacade.updateTrainerProfile(any(), any(Trainer.class))).thenReturn(response);
 
         UpdateTrainerRequest request = new UpdateTrainerRequest("Jane", "Roe", false);
         String json = objectMapper.writeValueAsString(request);
 
         mockMvc.perform(put("/api/trainers/{username}", "Tra.Iner")
-                .header("X-Username", "John.Doe")
-                .header("X-Password", "random")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isOk())
@@ -155,7 +145,7 @@ public class TrainerControllerTest {
                 .andExpect(jsonPath("$.isActive").value(false));
 
         ArgumentCaptor<Trainer> trainerCaptor = ArgumentCaptor.forClass(Trainer.class);
-        verify(gymFacade).updateTrainerProfile(any(), eq("Tra.Iner"), trainerCaptor.capture());
+        verify(gymFacade).updateTrainerProfile(eq("Tra.Iner"), trainerCaptor.capture());
 
         assertEquals("Jane", trainerCaptor.getValue().getFirstName());
         assertNull(trainerCaptor.getValue().getSpecialization());
@@ -165,13 +155,11 @@ public class TrainerControllerTest {
     public void getTrainings_success() throws Exception {
         TrainerTrainingResponse training = new TrainerTrainingResponse("Morning session",
                 LocalDate.of(2026, 7, 20), new TrainingTypeResponse(2L, "Cardio"), 60, "Tr.Ainee");
-        when(gymFacade.getTrainerTrainings(any(Credentials.class), anyString(),
+        when(gymFacade.getTrainerTrainings(anyString(),
                 any(LocalDate.class), any(LocalDate.class), anyString()))
                 .thenReturn(List.of(training));
 
         mockMvc.perform(get("/api/trainers/{username}/trainings", "Tra.Iner")
-                .header("X-Username", "John.Doe")
-                .header("X-Password", "random")
                 .param("periodFrom", "2026-07-01")
                 .param("periodTo", "2026-07-31")
                 .param("traineeName", "Tr.Ainee"))
@@ -183,7 +171,7 @@ public class TrainerControllerTest {
                 .andExpect(jsonPath("$[0].traineeName").value("Tr.Ainee"));
 
         ArgumentCaptor<LocalDate> fromCaptor = ArgumentCaptor.forClass(LocalDate.class);
-        verify(gymFacade).getTrainerTrainings(any(Credentials.class), eq("Tra.Iner"),
+        verify(gymFacade).getTrainerTrainings(eq("Tra.Iner"),
                 fromCaptor.capture(), any(LocalDate.class), eq("Tr.Ainee"));
 
         assertEquals(LocalDate.of(2026, 7, 1), fromCaptor.getValue());

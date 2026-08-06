@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
-import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginResponse;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
@@ -48,8 +49,8 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "The new password is missing or does not satisfy the constraints"),
             @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
-    public ResponseEntity<Void> changePassword(Credentials credentials, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        gymFacade.changeLogin(credentials, changePasswordRequest.newPassword());
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal UserDetails userDetails, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        gymFacade.changeLogin(userDetails.getUsername(), changePasswordRequest.newPassword());
         return ResponseEntity.ok().build();
     }
 }

@@ -14,10 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.volodymyrzganiaiko.gym.crm.system.dto.AddTrainingRequest;
-import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
-import org.volodymyrzganiaiko.gym.crm.system.resolver.CredentialsArgumentResolver;
 
 import java.time.LocalDate;
 
@@ -47,7 +45,6 @@ public class TrainingControllerTest {
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(new CredentialsArgumentResolver())
                 .build();
     }
 
@@ -57,19 +54,12 @@ public class TrainingControllerTest {
         String json = objectMapper.writeValueAsString(request);
 
         mockMvc.perform(post("/api/trainings")
-                        .header("X-Username", "John.Doe")
-                        .header("X-Password", "random")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated());
 
-        ArgumentCaptor<Credentials> credentialsCaptor = ArgumentCaptor.forClass(Credentials.class);
         ArgumentCaptor<AddTrainingRequest> requestCaptor = ArgumentCaptor.forClass(AddTrainingRequest.class);
-        verify(gymFacade).createTraining(credentialsCaptor.capture(), requestCaptor.capture());
-
-        Credentials credentials = credentialsCaptor.getValue();
-        assertEquals("John.Doe", credentials.username());
-        assertEquals("random", credentials.password());
+        verify(gymFacade).createTraining(requestCaptor.capture());
 
         AddTrainingRequest requestCaptorValue = requestCaptor.getValue();
         assertEquals("Tr.Ainee", requestCaptorValue.traineeUsername());
@@ -85,8 +75,6 @@ public class TrainingControllerTest {
         String json = objectMapper.writeValueAsString(request);
 
         mockMvc.perform(post("/api/trainings")
-                        .header("X-Username", "John.Doe")
-                        .header("X-Password", "random")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
@@ -97,13 +85,11 @@ public class TrainingControllerTest {
     @Test
     public void createTraining_throwsIllegalArgumentException() throws Exception {
         doThrow(new IllegalArgumentException("Trainer with username Tra.Iner was not found"))
-                .when(gymFacade).createTraining(any(Credentials.class), any(AddTrainingRequest.class));
+                .when(gymFacade).createTraining(any(AddTrainingRequest.class));
         AddTrainingRequest request = new AddTrainingRequest("Tr.Ainee", "Tra.Iner", "Morning session", LocalDate.of(2026, 7, 20), 60);
         String json = objectMapper.writeValueAsString(request);
 
         mockMvc.perform(post("/api/trainings")
-                        .header("X-Username", "John.Doe")
-                        .header("X-Password", "random")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isNotFound())
