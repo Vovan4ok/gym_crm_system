@@ -41,3 +41,8 @@ info:
   app:
     name: "Gym CRM System"
     version: @project.version@
+
+jwt:
+  secret: "some-random-jwt-secret-string-username-password"
+  expiration-ms: 3600000
+
