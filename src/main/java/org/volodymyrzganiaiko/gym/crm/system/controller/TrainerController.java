@@ -16,6 +16,8 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
+import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,17 +27,22 @@ import java.util.List;
 public class TrainerController {
     @Autowired
     private GymFacade gymFacade;
+    @Autowired
+    private JwtService jwtService;
 
     @PostMapping
-    @Operation(summary = "Register a trainer", description = "Creates a trainer and returns the generated username together with the generated password. No authentication is required.")
+    @Operation(summary = "Register a trainer", description = "Creates a trainer and returns the generated username, the generated password and a JWT bearer token for the new user. No authentication is required.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Trainer was successfully created"),
             @ApiResponse(responseCode = "400", description = "The request body failed validation"),
             @ApiResponse(responseCode = "404", description = "The specialization was not found")
     })
-    public ResponseEntity<TrainerRegistrationDTO> createTrainer(@Valid @RequestBody TrainerRegistrationRequest req) {
+    public ResponseEntity<RegistrationResponse> createTrainer(@Valid @RequestBody TrainerRegistrationRequest req) {
         Trainer trainer = mapTrainer(req.firstName(), req.lastName(), null, new TrainingType(req.specializationId(), null));
-        return ResponseEntity.status(HttpStatus.CREATED).body(gymFacade.createTrainer(trainer));
+        TrainerRegistrationDTO dto = gymFacade.createTrainer(trainer);
+        String token = jwtService.generateToken(dto.username());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new RegistrationResponse(dto.username(), dto.password(), token));
     }
 
     @GetMapping("/{username}")

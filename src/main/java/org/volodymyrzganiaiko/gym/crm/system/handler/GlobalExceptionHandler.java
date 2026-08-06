@@ -47,6 +47,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<Object> handleSpringAuth(org.springframework.security.core.AuthenticationException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Wrong username or password");
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             @NonNull MethodArgumentNotValidException ex, @NonNull HttpHeaders headers,

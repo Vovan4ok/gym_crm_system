@@ -15,6 +15,8 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
+import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,15 +27,21 @@ public class TraineeController {
     @Autowired
     private GymFacade gymFacade;
 
+    @Autowired
+    private JwtService jwtService;
+
     @PostMapping
-    @Operation(summary = "Register a trainee", description = "Creates a trainee and returns the generated username together with the generated password. No authentication is required.")
+    @Operation(summary = "Register a trainee", description = "Creates a trainee and returns the generated username, the generated password and a JWT bearer token for the new user. No authentication is required.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Trainee was successfully created"),
             @ApiResponse(responseCode = "400", description = "The request body failed validation")
     })
-    public ResponseEntity<TraineeRegistrationDTO> createTrainee(@Valid @RequestBody TraineeRegistrationRequest  req) {
+    public ResponseEntity<RegistrationResponse> createTrainee(@Valid @RequestBody TraineeRegistrationRequest  req) {
         Trainee trainee = mapTrainee(req.firstName(), req.lastName(), null, req.dateOfBirth(), req.address());
-        return ResponseEntity.status(HttpStatus.CREATED).body(gymFacade.createTrainee(trainee));
+        TraineeRegistrationDTO dto = gymFacade.createTrainee(trainee);
+        String token = jwtService.generateToken(dto.username());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new RegistrationResponse(dto.username(), dto.password(), token));
     }
 
     @GetMapping("/{username}")
