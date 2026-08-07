@@ -24,6 +24,7 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginRequest;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
+import org.volodymyrzganiaiko.gym.crm.system.service.BruteForceProtectionService;
 import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
 
 import static org.hamcrest.Matchers.not;
@@ -43,6 +44,8 @@ public class AuthControllerTest {
 
     @Mock
     private JwtService jwtService;
+    @Mock
+    private BruteForceProtectionService bruteForceProtectionService;
 
     @InjectMocks
     private AuthController controller;
@@ -94,8 +97,27 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.message").value("Wrong username or password"))
                 .andExpect(content().string(not(containsString("rawPass"))));
+
+        verify(bruteForceProtectionService).loginFailed("John.Doe");
     }
 
+    @Test
+    public void login_blocked() throws Exception {
+        when(bruteForceProtectionService.isBlocked("John.Doe")).thenReturn(true);
+
+        LoginRequest input = new LoginRequest("John.Doe", "rawPass");
+        String json = objectMapper.writeValueAsString(input);
+
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.message").value("Too many login failed attempts"))
+                .andExpect(content().string(not(containsString("rawPass"))));
+
+        verifyNoInteractions(authenticationManager);
+    }
     @Test
     public void changePassword_success() throws Exception {
         authenticateAs("John.Doe");

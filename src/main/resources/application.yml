@@ -14,6 +14,12 @@ spring:
   profiles:
     active: local
 
+security:
+  brute-force:
+    max-attempts: 3
+    block-duration-ms: 300000
+    cleanup-interval-ms: 60000
+
 springdoc:
   api-docs:
     path: /v3/api-docs

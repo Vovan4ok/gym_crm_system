@@ -8,15 +8,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginResponse;
+import org.volodymyrzganiaiko.gym.crm.system.exception.UserBlockedException;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
+import org.volodymyrzganiaiko.gym.crm.system.service.BruteForceProtectionService;
 import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
 
 @RestController
@@ -32,13 +35,25 @@ public class AuthController {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private BruteForceProtectionService bruteForceProtectionService;
+
     @PostMapping
-    @Operation(summary = "Log in", description = "Verifies the credentials passed in the X-Username and X-Password headers.")
+    @Operation(summary = "Log in", description = "Verifies the credentials passed in the body.")
     @ApiResponses({
             @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest req) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+        if (bruteForceProtectionService.isBlocked(req.username())) {
+            throw new UserBlockedException("Too many failed login attempts");
+        }
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+        } catch (AuthenticationException e) {
+            bruteForceProtectionService.loginFailed(req.username());
+            throw e;
+        }
+        bruteForceProtectionService.loginSucceeded(req.username());
         String token = jwtService.generateToken(req.username());
         return ResponseEntity.ok(new LoginResponse(token));
     }
