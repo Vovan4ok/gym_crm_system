@@ -15,6 +15,8 @@ spring:
     active: local
 
 security:
+  cors:
+    allowed-origins: "https://localhost:3000"
   logout:
     cleanup-interval-ms: 60000
   brute-force:
