@@ -16,6 +16,8 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.ErrorResponse;
 import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 
 import jakarta.validation.ConstraintViolationException;
+import org.volodymyrzganiaiko.gym.crm.system.exception.UserBlockedException;
+
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
@@ -45,6 +47,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleValidationException(ConstraintViolationException ex) {
         log.warn("Validation didn't pass {}", ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<Object> handleSpringAuth(org.springframework.security.core.AuthenticationException ex) {
+        log.warn("Authentication wasn't successful {}",  ex.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Wrong username or password");
+    }
+
+    @ExceptionHandler(UserBlockedException.class)
+    public ResponseEntity<Object> handleTooManyRequests(UserBlockedException e) {
+        log.warn("Too many login failed attempts {}", e.getMessage());
+        return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "Too many login failed attempts");
     }
 
     @Override

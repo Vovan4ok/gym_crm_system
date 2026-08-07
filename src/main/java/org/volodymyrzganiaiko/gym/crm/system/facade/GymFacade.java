@@ -23,7 +23,6 @@ public class GymFacade {
     private final TrainerService trainerService;
     private final TrainingService trainingService;
     private final TrainingTypeService trainingTypeService;
-    private final AuthenticationService authenticationService;
     private final CredentialsService credentialsService;
     private final UserService userService;
     private final DtoMapper mapper;
@@ -33,31 +32,24 @@ public class GymFacade {
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, AuthenticationService authenticationService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
         this.trainingTypeService = trainingTypeService;
-        this.authenticationService = authenticationService;
         this.credentialsService = credentialsService;
         this.userService = userService;
         this.mapper = mapper;
         this.gymMetrics = gymMetrics;
     }
 
-    public void login(Credentials credentials) {
-        authenticationService.check(credentials);
-    }
-
     @Transactional
-    public void changeLogin(Credentials credentials, String newPassword) {
-        authenticationService.check(credentials);
-        userService.changePassword(credentials.username(), newPassword);
+    public void changeLogin(String username, String newPassword) {
+        userService.changePassword(username, newPassword);
     }
 
     @Transactional(readOnly = true)
-    public TraineeProfileResponse getTraineeProfile(Credentials credentials, String username) {
-        authenticationService.check(credentials);
+    public TraineeProfileResponse getTraineeProfile(String username) {
         Trainee trainee = traineeService.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Trainee with the username " + username + " was not found"));
         return mapper.mapTraineeToTraineeProfileResponse(trainee);
     }
@@ -71,79 +63,67 @@ public class GymFacade {
     }
 
     @Transactional
-    public TraineeProfileResponse updateTraineeProfile(Credentials credentials, String username, Trainee data) {
-        authenticationService.check(credentials);
+    public TraineeProfileResponse updateTraineeProfile(String username, Trainee data) {
         Trainee trainee = traineeService.update(username, data.getFirstName(), data.getLastName(), data.getIsActive(), data.getDateOfBirth(), data.getAddress());
         return mapper.mapTraineeToTraineeProfileResponse(trainee);
     }
 
     @Transactional
-    public void deleteTraineeProfile(Credentials credentials, String username) {
-        authenticationService.check(credentials);
+    public void deleteTraineeProfile(String username) {
         traineeService.deleteByUsername(username);
     }
 
     @Transactional
-    public void changeTraineeStatus(Credentials credentials, String username, Boolean isActive) {
-        authenticationService.check(credentials);
+    public void changeTraineeStatus(String username, Boolean isActive) {
         if (isActive) traineeService.activate(username);
         else traineeService.deactivate(username);
     }
 
     @Transactional
-    public List<TraineeTrainingResponse> getTraineeTrainings(Credentials credentials, String username, LocalDate from, LocalDate to, String trainerName, String trainingType) {
-        authenticationService.check(credentials);
+    public List<TraineeTrainingResponse> getTraineeTrainings(String username, LocalDate from, LocalDate to, String trainerName, String trainingType) {
         return trainingService.getTraineeTrainings(username, from, to, trainerName, trainingType).stream().map(mapper::mapTrainingToTraineeTrainingResponse).toList();
     }
 
     @Transactional
-    public TrainerProfileResponse getTrainerProfile(Credentials credentials, String username) {
-        authenticationService.check(credentials);
+    public TrainerProfileResponse getTrainerProfile(String username) {
         Trainer trainer = trainerService.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Trainer with the username " + username + " was not found"));
         return mapper.mapTrainerToTrainerProfileResponse(trainer);
     }
 
     @Transactional
-    public TrainerProfileResponse updateTrainerProfile(Credentials credentials, String username, Trainer data) {
-        authenticationService.check(credentials);
+    public TrainerProfileResponse updateTrainerProfile(String username, Trainer data) {
         Trainer trainer = trainerService.update(username, data.getFirstName(), data.getLastName(), data.getIsActive());
         return mapper.mapTrainerToTrainerProfileResponse(trainer);
     }
 
     @Transactional
-    public void changeTrainerStatus(Credentials credentials, String username, Boolean isActive) {
-        authenticationService.check(credentials);
+    public void changeTrainerStatus(String username, Boolean isActive) {
         if (isActive) trainerService.activate(username);
         else trainerService.deactivate(username);
     }
 
     @Transactional
-    public List<TrainerSummaryResponse> getUnassignedTrainers(Credentials credentials, String username) {
-        authenticationService.check(credentials);
+    public List<TrainerSummaryResponse> getUnassignedTrainers(String username) {
         return trainerService.getUnassignedTrainers(username).stream().map(mapper::mapTrainerToTrainerSummaryResponse).toList();
     }
 
     @Transactional
-    public List<TrainerSummaryResponse> updateTrainers(Credentials credentials, String username, List<String> trainerUsernames) {
-        authenticationService.check(credentials);
+    public List<TrainerSummaryResponse> updateTrainers(String username, List<String> trainerUsernames) {
         return traineeService.updateTrainerList(username, trainerUsernames).stream().map(mapper::mapTrainerToTrainerSummaryResponse).toList();
     }
 
     @Transactional
-    public List<TrainerTrainingResponse> getTrainerTrainings(Credentials credentials, String username, LocalDate from, LocalDate to, String traineeName) {
-        authenticationService.check(credentials);
+    public List<TrainerTrainingResponse> getTrainerTrainings(String username, LocalDate from, LocalDate to, String traineeName) {
         return trainingService.getTrainerTrainings(username, from, to, traineeName).stream().map(mapper::mapTrainingToTrainerTrainingResponse).toList();
     }
 
     @Transactional
-    public void createTraining(Credentials credentials, AddTrainingRequest req) {
-        authenticationService.check(credentials);
+    public void createTraining(AddTrainingRequest req) {
         gymMetrics.timeTrainingCreation(() -> trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration()));
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingTypeResponse> getTrainingTypes(Credentials credentials) {
-        authenticationService.check(credentials);
+    public List<TrainingTypeResponse> getTrainingTypes() {
         return trainingTypeService.findAll().stream().map(mapper::mapTrainingTypeToTrainingTypeResponse).toList();
     }
 

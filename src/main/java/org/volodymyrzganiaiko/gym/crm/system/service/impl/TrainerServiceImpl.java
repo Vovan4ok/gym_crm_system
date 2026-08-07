@@ -3,7 +3,6 @@ package org.volodymyrzganiaiko.gym.crm.system.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainerDAO;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainingTypeDAO;
@@ -20,13 +19,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.volodymyrzganiaiko.gym.crm.system.utils.ValueValidator.requireNotBlank;
-
 @Service
 public class TrainerServiceImpl implements TrainerService {
     private TrainerDAO trainerDAO;
     private TrainingTypeDAO trainingTypeDAO;
-    private PasswordEncoder passwordEncoder;
     private Validator validator;
 
     private static final Logger log = LoggerFactory.getLogger(TrainerServiceImpl.class);
@@ -39,11 +35,6 @@ public class TrainerServiceImpl implements TrainerService {
     @Autowired
     public void setTrainingTypeDAO(TrainingTypeDAO trainingTypeDAO) {
         this.trainingTypeDAO = trainingTypeDAO;
-    }
-
-    @Autowired
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Autowired

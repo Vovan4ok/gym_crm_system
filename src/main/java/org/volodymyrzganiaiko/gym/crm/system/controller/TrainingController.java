@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.AddTrainingRequest;
-import org.volodymyrzganiaiko.gym.crm.system.dto.Credentials;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
@@ -29,8 +28,8 @@ public class TrainingController {
             @ApiResponse(responseCode = "401", description = "Wrong username or password"),
             @ApiResponse(responseCode = "404", description = "The trainee or the trainer was not found")
     })
-    public ResponseEntity<Void> addTraining(Credentials credentials, @Valid @RequestBody AddTrainingRequest req) {
-        gymFacade.createTraining(credentials, req);
+    public ResponseEntity<Void> addTraining(@Valid @RequestBody AddTrainingRequest req) {
+        gymFacade.createTraining(req);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

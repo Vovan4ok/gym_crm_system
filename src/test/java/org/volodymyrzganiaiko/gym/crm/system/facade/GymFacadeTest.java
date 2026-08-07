@@ -8,7 +8,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
-import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
@@ -42,9 +41,6 @@ class GymFacadeTest {
 
     @Mock
     private TrainingTypeService trainingTypeService;
-    
-    @Mock
-    private AuthenticationService authenticationService;
     
     @Mock
     private CredentialsService credentialsService;
@@ -88,74 +84,39 @@ class GymFacadeTest {
     }
 
     @Test
-    public void login_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
-
-        gymFacade.login(credentials);
-
-        verify(authenticationService).check(credentials);
-    }
-
-    @Test
-    public void login_invalidCredentials() {
-        doThrow(new AuthenticationException("Wrong username or password")).when(authenticationService).check(any());
-        Credentials credentials = new Credentials("John.Doe", "random");
-
-        assertThrows(AuthenticationException.class, () -> gymFacade.login(credentials));
-        verifyNoInteractions(traineeService, trainerService, trainingService, trainingTypeService);
-    }
-
-    @Test
     public void changePassword_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
-        gymFacade.changeLogin(credentials, "newPassword");
+        gymFacade.changeLogin("John.Doe", "newPassword");
 
-        verify(authenticationService).check(credentials);
         verify(userService).changePassword("John.Doe", "newPassword");
     }
 
     @Test
-    public void changePassword_invalidCredentials() {
-        doThrow(new AuthenticationException("Wrong password")).when(authenticationService).check(any());
-        Credentials credentials = new Credentials("John.Doe", "random");
-
-        assertThrows(AuthenticationException.class, () -> gymFacade.changeLogin(credentials, "newPassword"));
-        verifyNoInteractions(userService);
-    }
-
-    @Test
     public void deleteTraineeProfile_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
         String input = "Tr.Ainee";
 
-        gymFacade.deleteTraineeProfile(credentials, input);
+        gymFacade.deleteTraineeProfile(input);
 
-        verify(authenticationService).check(credentials);
         verify(traineeService).deleteByUsername(input);
     }
 
     @Test
     public void changeTraineeStatus_activate() {
-        Credentials credentials = new Credentials("John.Doe", "random");
         String inputUsername = "Tr.Ainee";
         Boolean inputIsActive = true;
 
-        gymFacade.changeTraineeStatus(credentials, inputUsername, inputIsActive);
+        gymFacade.changeTraineeStatus(inputUsername, inputIsActive);
 
-        verify(authenticationService).check(credentials);
         verify(traineeService).activate(inputUsername);
         verify(traineeService, never()).deactivate(any());
     }
 
     @Test
     public void changeTraineeStatus_deactivate() {
-        Credentials credentials = new Credentials("John.Doe", "random");
         String inputUsername = "Tr.Ainee";
         Boolean inputIsActive = false;
 
-        gymFacade.changeTraineeStatus(credentials, inputUsername, inputIsActive);
+        gymFacade.changeTraineeStatus(inputUsername, inputIsActive);
 
-        verify(authenticationService).check(credentials);
         verify(traineeService).deactivate(inputUsername);
         verify(traineeService, never()).activate(any());
     }
@@ -171,29 +132,27 @@ class GymFacadeTest {
         trainee.setLastName("Ainee");
         trainee.setTrainers(Set.of());
         TraineeProfileResponse expected = new TraineeProfileResponse("Tr.Ainee", "Tr", "Ainee", LocalDate.parse("2003-11-08"), "Test address", true, List.of());
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
 
         when(traineeService.findByUsername("Tr.Ainee")).thenReturn(Optional.of(trainee));
         when(dtoMapper.mapTraineeToTraineeProfileResponse(trainee)).thenReturn(expected);
 
-        TraineeProfileResponse result = gymFacade.getTraineeProfile(credentials, "Tr.Ainee");
+        TraineeProfileResponse result = gymFacade.getTraineeProfile("Tr.Ainee");
 
         assertEquals(expected, result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void getTraineeProfile_notFound() {
         when(traineeService.findByUsername(any())).thenReturn(Optional.empty());
-        Credentials credentials = new Credentials("John.Doe", "random");
 
-        assertThrows(IllegalArgumentException.class, () -> gymFacade.getTraineeProfile(credentials, "Tr.Ainee"));
+        assertThrows(IllegalArgumentException.class, () -> gymFacade.getTraineeProfile("Tr.Ainee"));
         verifyNoInteractions(dtoMapper);
     }
 
     @Test
     public void updateTraineeProfile_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
         Trainee trainee = new Trainee();
         trainee.setFirstName("Jane");
         trainee.setLastName("Roe");
@@ -211,24 +170,22 @@ class GymFacadeTest {
         when(traineeService.update("Tr.Ainee", "Jane", "Roe", false, LocalDate.parse("2003-11-08"), "New st. 2")).thenReturn(updated);
         when(dtoMapper.mapTraineeToTraineeProfileResponse(updated)).thenReturn(expected);
 
-        TraineeProfileResponse result = gymFacade.updateTraineeProfile(credentials, "Tr.Ainee", trainee);
+        TraineeProfileResponse result = gymFacade.updateTraineeProfile("Tr.Ainee", trainee);
 
         assertEquals(expected, result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void getTraineeTrainings_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
         Training training = new Training();
         TraineeTrainingResponse expected = new TraineeTrainingResponse("Morning activity", LocalDate.parse("2003-08-11"), new TrainingTypeResponse(2L, "Cardio"), 60, "Tr.Ainee");
         when(trainingService.getTraineeTrainings("Tr.Ainee", LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Tra.Iner", "Cardio")).thenReturn(List.of(training));
         when(dtoMapper.mapTrainingToTraineeTrainingResponse(training)).thenReturn(expected);
 
-        List<TraineeTrainingResponse> result = gymFacade.getTraineeTrainings(credentials, "Tr.Ainee", LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Tra.Iner", "Cardio");
+        List<TraineeTrainingResponse> result = gymFacade.getTraineeTrainings("Tr.Ainee", LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Tra.Iner", "Cardio");
 
         assertEquals(List.of(expected), result);
-        verify(authenticationService).check(credentials);
     }
 
     @Test
@@ -241,55 +198,55 @@ class GymFacadeTest {
         trainer.setLastName("Ainer");
         trainer.setTrainees(Set.of());
         TrainerProfileResponse expected = new TrainerProfileResponse("Tra.Iner", "Tra", "Iner", new TrainingTypeResponse(1L, "Cardio"), true, List.of());
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
 
         when(trainerService.findByUsername("Tra.Iner")).thenReturn(Optional.of(trainer));
         when(dtoMapper.mapTrainerToTrainerProfileResponse(trainer)).thenReturn(expected);
 
-        TrainerProfileResponse result = gymFacade.getTrainerProfile(credentials, "Tra.Iner");
+        TrainerProfileResponse result = gymFacade.getTrainerProfile("Tra.Iner");
 
         assertEquals(expected, result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void getTrainerProfile_notFound() {
         when(trainerService.findByUsername(any())).thenReturn(Optional.empty());
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
 
-        assertThrows(IllegalArgumentException.class, () -> gymFacade.getTrainerProfile(credentials, "Tra.Iner"));
+        assertThrows(IllegalArgumentException.class, () -> gymFacade.getTrainerProfile("Tra.Iner"));
         verifyNoInteractions(dtoMapper);
     }
 
     @Test
     public void changeTrainerStatus_activate() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         String inputUsername = "Tra.Iner";
         Boolean inputIsActive = true;
 
-        gymFacade.changeTrainerStatus(credentials, inputUsername, inputIsActive);
+        gymFacade.changeTrainerStatus(inputUsername, inputIsActive);
 
-        verify(authenticationService).check(credentials);
+        
         verify(trainerService).activate(inputUsername);
         verify(trainerService, never()).deactivate(any());
     }
 
     @Test
     public void changeTrainerStatus_deactivate() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         String inputUsername = "Tra.Iner";
         Boolean inputIsActive = false;
 
-        gymFacade.changeTrainerStatus(credentials, inputUsername, inputIsActive);
+        gymFacade.changeTrainerStatus(inputUsername, inputIsActive);
 
-        verify(authenticationService).check(credentials);
+        
         verify(trainerService).deactivate(inputUsername);
         verify(trainerService, never()).activate(any());
     }
 
     @Test
     public void updateTrainerProfile_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         Trainer trainer = new Trainer();
         trainer.setFirstName("Jane");
         trainer.setLastName("Roe");
@@ -305,43 +262,43 @@ class GymFacadeTest {
         when(trainerService.update("Tra.Iner", "Jane", "Roe", false)).thenReturn(updated);
         when(dtoMapper.mapTrainerToTrainerProfileResponse(updated)).thenReturn(expected);
 
-        TrainerProfileResponse result = gymFacade.updateTrainerProfile(credentials, "Tra.Iner", trainer);
+        TrainerProfileResponse result = gymFacade.updateTrainerProfile("Tra.Iner", trainer);
 
         assertEquals(expected, result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void getTrainerTrainings_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         Training training = new Training();
         TrainerTrainingResponse expected = new TrainerTrainingResponse("Morning activity", LocalDate.parse("2003-08-11"), new TrainingTypeResponse(2L, "Cardio"), 60, "Tr.Ainee");
         when(trainingService.getTrainerTrainings("Tra.Iner", LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Tr.Ainee")).thenReturn(List.of(training));
         when(dtoMapper.mapTrainingToTrainerTrainingResponse(training)).thenReturn(expected);
 
-        List<TrainerTrainingResponse> result = gymFacade.getTrainerTrainings(credentials, "Tra.Iner", LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Tr.Ainee");
+        List<TrainerTrainingResponse> result = gymFacade.getTrainerTrainings("Tra.Iner", LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Tr.Ainee");
 
         assertEquals(List.of(expected), result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void getUnassignedTrainers_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         Trainer trainer = new Trainer();
         TrainerSummaryResponse expected = new TrainerSummaryResponse("Tra.Iner", "Tra", "Iner", new TrainingTypeResponse(2L, "Cardio"));
         when(trainerService.getUnassignedTrainers("Tr.Ainee")).thenReturn(List.of(trainer));
         when(dtoMapper.mapTrainerToTrainerSummaryResponse(trainer)).thenReturn(expected);
 
-        List<TrainerSummaryResponse> result = gymFacade.getUnassignedTrainers(credentials, "Tr.Ainee");
+        List<TrainerSummaryResponse> result = gymFacade.getUnassignedTrainers("Tr.Ainee");
 
         assertEquals(List.of(expected), result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void updateTrainers_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         List<String> trainerUsernames = List.of("Tra.Iner", "Other.Trainer");
         Trainer first = new Trainer();
         Trainer second = new Trainer();
@@ -352,15 +309,15 @@ class GymFacadeTest {
         when(dtoMapper.mapTrainerToTrainerSummaryResponse(first)).thenReturn(expectedFirst);
         when(dtoMapper.mapTrainerToTrainerSummaryResponse(second)).thenReturn(expectedSecond);
 
-        List<TrainerSummaryResponse> result = gymFacade.updateTrainers(credentials, "Tr.Ainee", trainerUsernames);
+        List<TrainerSummaryResponse> result = gymFacade.updateTrainers("Tr.Ainee", trainerUsernames);
 
         assertEquals(List.of(expectedFirst, expectedSecond), result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
     public void createTraining_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         AddTrainingRequest req = new AddTrainingRequest("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
 
         doAnswer(inv -> {
@@ -368,25 +325,25 @@ class GymFacadeTest {
             return null;
         }).when(gymMetrics).timeTrainingCreation(any());
 
-        gymFacade.createTraining(credentials, req);
+        gymFacade.createTraining(req);
 
-        verify(authenticationService).check(credentials);
+        
         verify(trainingService).addTraining("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
     }
 
     @Test
     public void getTrainingTypes_success() {
-        Credentials credentials = new Credentials("John.Doe", "random");
+        
         TrainingType trainingType = new TrainingType(1L, "Cardio");
         TrainingTypeResponse expected = new TrainingTypeResponse(1L, "Cardio");
 
         when(trainingTypeService.findAll()).thenReturn(List.of(trainingType));
         when(dtoMapper.mapTrainingTypeToTrainingTypeResponse(trainingType)).thenReturn(expected);
 
-        List<TrainingTypeResponse> result = gymFacade.getTrainingTypes(credentials);
+        List<TrainingTypeResponse> result = gymFacade.getTrainingTypes();
 
         assertEquals(List.of(expected), result);
-        verify(authenticationService).check(credentials);
+        
     }
 
     @Test
