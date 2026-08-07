@@ -15,20 +15,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.volodymyrzganiaiko.gym.crm.system.service.CustomUserDetailsService;
 import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.service.TokenDenylistService;
 
 import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
-
     private final CustomUserDetailsService customUserDetailsService;
+    private final TokenDenylistService tokenDenylistService;
 
     private static final Logger log =  LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    public JwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService customUserDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService customUserDetailsService, TokenDenylistService tokenDenylistService) {
         this.jwtService = jwtService;
         this.customUserDetailsService = customUserDetailsService;
+        this.tokenDenylistService = tokenDenylistService;
     }
 
     @Override
@@ -38,12 +40,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 String token = header.substring(7);
 
-                String username = jwtService.extractUsername(token);
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-                    UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                    usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                if (!tokenDenylistService.isDenied(token)) {
+                    String username = jwtService.extractUsername(token);
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+                        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                    }
                 }
             } catch (JwtException e) {
                 log.debug("Exception happened while filtering jwt token - {}", e.getMessage());

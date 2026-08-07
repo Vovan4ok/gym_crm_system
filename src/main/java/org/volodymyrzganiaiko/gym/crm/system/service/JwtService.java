@@ -39,4 +39,13 @@ public class JwtService {
                 .getPayload()
                 .getSubject();
     }
+
+    public long extractExpiration(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getExpiration().getTime();
+    }
 }
