@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @Import(DaoTestConfig.class)
-public class UserDAOImplTest {
+public class UserDAOImplIT {
     @Autowired
     private TraineeDAO traineeDAO;
 
