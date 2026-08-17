@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.handler;
+package org.volodymyrzganiaiko.gym.crm.system.security.handler;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
-import org.volodymyrzganiaiko.gym.crm.system.service.TokenDenylistService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.TokenDenylistService;
 
 @Component
 public class TokenLogoutHandler implements LogoutHandler {

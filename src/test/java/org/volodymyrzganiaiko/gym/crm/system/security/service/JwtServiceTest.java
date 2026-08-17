@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.service;
+package org.volodymyrzganiaiko.gym.crm.system.security.service;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;

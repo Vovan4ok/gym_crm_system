@@ -15,7 +15,7 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
-import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
 import java.time.LocalDate;
 import java.util.List;

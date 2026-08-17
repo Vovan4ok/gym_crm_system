@@ -24,8 +24,8 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginRequest;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
-import org.volodymyrzganiaiko.gym.crm.system.service.BruteForceProtectionService;
-import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.BruteForceProtectionService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;

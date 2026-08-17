@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.handler;
+package org.volodymyrzganiaiko.gym.crm.system.security.handler;
 
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.Test;
@@ -8,7 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.volodymyrzganiaiko.gym.crm.system.service.TokenDenylistService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.TokenDenylistService;
 
 import static org.mockito.Mockito.*;
 

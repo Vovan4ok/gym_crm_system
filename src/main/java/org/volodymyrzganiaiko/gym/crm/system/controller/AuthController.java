@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginRequest;
 import org.volodymyrzganiaiko.gym.crm.system.dto.LoginResponse;
-import org.volodymyrzganiaiko.gym.crm.system.exception.UserBlockedException;
+import org.volodymyrzganiaiko.gym.crm.system.security.exception.UserBlockedException;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
-import org.volodymyrzganiaiko.gym.crm.system.service.BruteForceProtectionService;
-import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.BruteForceProtectionService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
 @RestController
 @RequestMapping("/api/login")

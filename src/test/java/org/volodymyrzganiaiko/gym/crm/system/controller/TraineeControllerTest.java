@@ -18,7 +18,7 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
-import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
 import java.time.LocalDate;
 import java.util.List;

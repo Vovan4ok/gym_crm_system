@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.service;
+package org.volodymyrzganiaiko.gym.crm.system.security.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

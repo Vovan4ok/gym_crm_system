@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.config;
+package org.volodymyrzganiaiko.gym.crm.system.security.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +17,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.volodymyrzganiaiko.gym.crm.system.filter.JwtAuthenticationFilter;
-import org.volodymyrzganiaiko.gym.crm.system.handler.TokenLogoutHandler;
+import org.volodymyrzganiaiko.gym.crm.system.security.filter.JwtAuthenticationFilter;
+import org.volodymyrzganiaiko.gym.crm.system.security.handler.TokenLogoutHandler;
 
 import java.util.List;
 

@@ -16,7 +16,7 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.ErrorResponse;
 import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 
 import jakarta.validation.ConstraintViolationException;
-import org.volodymyrzganiaiko.gym.crm.system.exception.UserBlockedException;
+import org.volodymyrzganiaiko.gym.crm.system.security.exception.UserBlockedException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;

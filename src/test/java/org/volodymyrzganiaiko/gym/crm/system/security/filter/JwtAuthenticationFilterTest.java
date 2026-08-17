@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.filter;
+package org.volodymyrzganiaiko.gym.crm.system.security.filter;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -10,9 +10,9 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.volodymyrzganiaiko.gym.crm.system.service.CustomUserDetailsService;
-import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
-import org.volodymyrzganiaiko.gym.crm.system.service.TokenDenylistService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.CustomUserDetailsService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.TokenDenylistService;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verifyNoInteractions;

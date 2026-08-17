@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.gym.crm.system.filter;
+package org.volodymyrzganiaiko.gym.crm.system.security.filter;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -13,9 +13,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.volodymyrzganiaiko.gym.crm.system.service.CustomUserDetailsService;
-import org.volodymyrzganiaiko.gym.crm.system.service.JwtService;
-import org.volodymyrzganiaiko.gym.crm.system.service.TokenDenylistService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.CustomUserDetailsService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.security.service.TokenDenylistService;
 
 import java.io.IOException;
 
