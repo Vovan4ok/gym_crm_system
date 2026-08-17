@@ -7,13 +7,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ErrorResponse;
-import org.volodymyrzganiaiko.gym.crm.system.exception.AuthenticationException;
 
 import jakarta.validation.ConstraintViolationException;
 import org.volodymyrzganiaiko.gym.crm.system.security.exception.UserBlockedException;
@@ -24,12 +24,6 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log =  LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Object> handleAuth(AuthenticationException ex) {
-        log.warn("Authentication failed {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
-    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgument(IllegalArgumentException ex) {
@@ -59,6 +53,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleTooManyRequests(UserBlockedException e) {
         log.warn("Too many login failed attempts {}", e.getMessage());
         return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "Too many login failed attempts");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException e) {
+        return buildResponse(HttpStatus.FORBIDDEN, "Access is denied");
     }
 
     @Override

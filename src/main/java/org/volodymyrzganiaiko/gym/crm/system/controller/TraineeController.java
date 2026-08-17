@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
@@ -54,6 +55,7 @@ public class TraineeController {
         return ResponseEntity.ok(gymFacade.getTraineeProfile(username));
     }
 
+    @PreAuthorize("#username == authentication.name")
     @PutMapping("/{username}")
     @Operation(summary = "Update a trainee profile", description = "Overwrites the editable fields of the trainee and returns the updated profile.")
     @ApiResponses({
@@ -66,6 +68,7 @@ public class TraineeController {
         return ResponseEntity.ok(gymFacade.updateTraineeProfile(username, trainee));
     }
 
+    @PreAuthorize("#username == authentication.name")
     @DeleteMapping("/{username}")
     @Operation(summary = "Delete a trainee profile", description = "Removes the trainee together with all of their trainings.")
     @ApiResponses({
@@ -77,6 +80,7 @@ public class TraineeController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("#username == authentication.name")
     @GetMapping("/{username}/unassigned-trainers")
     @Operation(summary = "List trainers not assigned to the trainee", description = "Returns the active trainers that are not yet linked with this trainee.")
     @ApiResponses({
@@ -98,6 +102,7 @@ public class TraineeController {
         return ResponseEntity.ok(gymFacade.updateTrainers(username, req.usernames()));
     }
 
+    @PreAuthorize("#username == authentication.name")
     @PatchMapping("/{username}/status")
     @Operation(summary = "Activate or deactivate a trainee", description = "Switches the active flag of the trainee. The operation is not idempotent: setting the flag to the value it already has is rejected.")
     @ApiResponses({
@@ -111,6 +116,7 @@ public class TraineeController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("#username == authentication.name")
     @GetMapping("/{username}/trainings")
     @Operation(summary = "List the trainings of a trainee", description = "Returns the trainings of the trainee. Every filter is optional; omitting all of them returns the full list.")
     @ApiResponses({

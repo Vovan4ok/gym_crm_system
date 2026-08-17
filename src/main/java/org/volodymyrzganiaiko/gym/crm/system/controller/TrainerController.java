@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.domain.TrainingType;
@@ -55,6 +56,7 @@ public class TrainerController {
         return ResponseEntity.ok(gymFacade.getTrainerProfile(username));
     }
 
+    @PreAuthorize("#username == authentication.name")
     @PutMapping("/{username}")
     @Operation(summary = "Update a trainer profile", description = "Overwrites the editable fields of the trainer and returns the updated profile. The specialization cannot be changed.")
     @ApiResponses({
@@ -67,6 +69,7 @@ public class TrainerController {
         return ResponseEntity.ok(gymFacade.updateTrainerProfile(username, trainer));
     }
 
+    @PreAuthorize("#username == authentication.name")
     @PatchMapping("/{username}/status")
     @Operation(summary = "Activate or deactivate a trainer", description = "Switches the active flag of the trainer. The operation is not idempotent: setting the flag to the value it already has is rejected.")
     @ApiResponses({
@@ -80,6 +83,7 @@ public class TrainerController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("#username == authentication.name")
     @GetMapping("/{username}/trainings")
     @Operation(summary = "List the trainings of a trainer", description = "Returns the trainings of the trainer. Every filter is optional; omitting all of them returns the full list.")
     @ApiResponses({
