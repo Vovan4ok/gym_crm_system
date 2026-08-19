@@ -341,7 +341,7 @@ class GymFacadeTest {
         gymFacade.createTraining(req);
 
         verify(workloadClient).sendWorkload(argThat(r ->
-                r.actionType() == ActionType.ADD && r.trainerUsername().equals("Tra.Iner")));
+                r.actionType() == ActionType.ADD && r.trainerUsername().equals("Tra.Iner")), any());
         verify(trainingService).addTraining("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
     }
 
@@ -445,7 +445,7 @@ class GymFacadeTest {
         gymFacade.deleteTraining(1L);
 
         verify(trainingService).deleteTraining(1L);
-        verify(workloadClient).sendWorkload(argThat(r -> r.actionType()==ActionType.DELETE && r.trainerUsername().equals("Tra.Iner")));
+        verify(workloadClient).sendWorkload(argThat(r -> r.actionType()==ActionType.DELETE && r.trainerUsername().equals("Tra.Iner")), any());
     }
 
     @Test

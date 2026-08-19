@@ -11,7 +11,7 @@ public class WorkloadClientFallback implements WorkloadClient {
     private static final Logger log = LoggerFactory.getLogger(WorkloadClientFallback.class);
 
     @Override
-    public void sendWorkload(TrainerWorkloadRequest request) {
+    public void sendWorkload(TrainerWorkloadRequest request, String transactionId) {
         log.warn("Workload service unavailable — skipped {} event for trainer {}",
                 request.actionType(), request.trainerUsername());
     }

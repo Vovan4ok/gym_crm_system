@@ -2,6 +2,7 @@ package org.volodymyrzganiaiko.gym.crm.system.facade;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -136,7 +137,7 @@ public class GymFacade {
                 training.getTrainingDate(),
                 training.getTrainingDurationInMinutes(),
                 ActionType.ADD
-        ));
+        ), MDC.get("transactionId"));
     }
 
     @Transactional
@@ -149,7 +150,7 @@ public class GymFacade {
                 training.getTrainingDate(), training.getTrainingDurationInMinutes(), ActionType.DELETE);
 
         trainingService.deleteTraining(id);
-        workloadClient.sendWorkload(req);
+        workloadClient.sendWorkload(req, MDC.get("transactionId"));
     }
 
     @Transactional(readOnly = true)
