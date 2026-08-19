@@ -94,4 +94,11 @@ public class TrainingServiceImpl implements TrainingService {
         log.debug("Finding all training records");
         return trainingDAO.findAll();
     }
+
+    @Override
+    @Transactional
+    public void deleteTraining(Long id) {
+        log.info("Deleting training with id = {}", id);
+        trainingDAO.deleteById(id);
+    }
 }

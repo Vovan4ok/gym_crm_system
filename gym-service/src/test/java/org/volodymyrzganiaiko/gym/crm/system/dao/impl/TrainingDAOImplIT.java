@@ -19,6 +19,7 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -77,6 +78,25 @@ public class TrainingDAOImplIT {
         Training reloaded = trainingDAO.findById(training.getId()).orElseThrow();
         assertNotNull(reloaded);
         assertEquals(training.getTrainingName(), reloaded.getTrainingName());
+    }
+
+    @Test
+    public void deleteById_removesTraining() {
+        Training training = trainingDAO.save(new Training(null, trainee, yogaTrainer, new TrainingType(1L, "Yoga"), "morning yoga", LocalDate.parse("2024-01-10"), 60));
+        flushAndClear();
+
+        assertNotNull(trainingDAO.findById(training.getId()));
+
+        trainingDAO.deleteById(training.getId());
+        flushAndClear();
+
+        Optional<Training> reloaded = trainingDAO.findById(training.getId());
+        assertTrue(reloaded.isEmpty());
+    }
+
+    @Test
+    public void deleteById_missingId_noop() {
+        assertDoesNotThrow(() -> trainingDAO.deleteById(999L));
     }
 
     static Stream<Arguments> traineeFilterCases() {

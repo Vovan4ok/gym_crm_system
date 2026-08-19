@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
 import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
@@ -47,6 +48,9 @@ class GymFacadeTest {
 
     @Mock
     private GymMetrics gymMetrics;
+
+    @Mock
+    private WorkloadClient workloadClient;
 
     @InjectMocks
     GymFacade gymFacade;
@@ -317,17 +321,27 @@ class GymFacadeTest {
 
     @Test
     public void createTraining_success() {
-        
         AddTrainingRequest req = new AddTrainingRequest("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
 
         doAnswer(inv -> {
             inv.getArgument(0, Runnable.class).run();
             return null;
         }).when(gymMetrics).timeTrainingCreation(any());
+        Trainer trainer = new Trainer();
+        trainer.setUsername("Tra.Iner");
+        trainer.setFirstName("Tra");
+        trainer.setLastName("Iner");
+        trainer.setIsActive(true);
+
+        Training training = new Training(null, trainer, null, "Cardio", LocalDate.parse("2026-07-10"), 60);
+
+        when(trainingService.addTraining("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60))
+                .thenReturn(training);
 
         gymFacade.createTraining(req);
 
-        
+        verify(workloadClient).sendWorkload(argThat(r ->
+                r.actionType() == ActionType.ADD && r.trainerUsername().equals("Tra.Iner")));
         verify(trainingService).addTraining("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
     }
 
@@ -408,5 +422,37 @@ class GymFacadeTest {
         verify(trainerService, times(3)).create(any());
         assertInstanceOf(DataIntegrityViolationException.class, ex.getCause());
         assertTrue(ex.getMessage().contains("Trainer"));
+    }
+
+    @Test
+    public void deleteTraining_success() {
+        Trainer trainer = new Trainer();
+        trainer.setUsername("Tra.Iner");
+        trainer.setFirstName("Tra");
+        trainer.setLastName("Iner");
+        trainer.setIsActive(true);
+        trainer.setSpecialization(new TrainingType(1L, "Yoga"));
+        Trainee trainee = new Trainee();
+        trainee.setUsername("Tr.Ainee");
+        trainee.setAddress("Test address");
+        trainee.setIsActive(true);
+        trainee.setDateOfBirth(LocalDate.parse("2003-11-08"));
+        trainee.setFirstName("Tr");
+        trainee.setLastName("Ainee");
+        trainee.setTrainers(Set.of());
+        when(trainingService.findById(1L)).thenReturn(Optional.of(new Training(1L, trainee, trainer, new TrainingType(1L, "Yoga"), "morning yoga", LocalDate.parse("2024-01-10"), 60)));
+
+        gymFacade.deleteTraining(1L);
+
+        verify(trainingService).deleteTraining(1L);
+        verify(workloadClient).sendWorkload(argThat(r -> r.actionType()==ActionType.DELETE && r.trainerUsername().equals("Tra.Iner")));
+    }
+
+    @Test
+    public void deleteTraining_notFound() {
+        when(trainingService.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> gymFacade.deleteTraining(1L));
+        verifyNoInteractions(workloadClient);
     }
 }

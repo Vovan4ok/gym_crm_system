@@ -156,6 +156,12 @@ public class TrainingServiceImplTest {
         assertTrue(trainee.getTrainers().isEmpty());
     }
 
+    @Test
+    public void deleteTraining_delegatesToDao() {
+        trainingService.deleteTraining(5L);
+        verify(trainingDAO).deleteById(5L);
+    }
+
     static Stream<Arguments> invalidTrainingArguments() {
         return Stream.of(
                 Arguments.of("blank trainingName",  "", LocalDate.now(), 90),

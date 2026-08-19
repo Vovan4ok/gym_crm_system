@@ -32,4 +32,16 @@ public class TrainingController {
         gymFacade.createTraining(req);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a training", description = "Deletes the training identified by the id and notifies the workload service to subtract the trainer's hours for that session.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Training was successfully deleted"),
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "404", description = "The training was not found")
+    })
+    public ResponseEntity<Void> deleteTraining(@PathVariable Long id) {
+        gymFacade.deleteTraining(id);
+        return ResponseEntity.ok().build();
+    }
 }
