@@ -13,6 +13,10 @@ spring:
     locale-resolver: fixed
   profiles:
     active: local
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
 
 security:
   cors:
