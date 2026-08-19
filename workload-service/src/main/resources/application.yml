@@ -1,6 +1,9 @@
 server:
   port: 8081
 
+jwt:
+  secret: "some-random-jwt-secret-string-username-password"
+
 spring:
   application:
     name: workload-service
