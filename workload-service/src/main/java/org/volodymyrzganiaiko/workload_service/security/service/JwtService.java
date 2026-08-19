@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.workload_service.service;
+package org.volodymyrzganiaiko.workload_service.security.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

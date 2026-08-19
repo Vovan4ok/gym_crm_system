@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.workload_service.config;
+package org.volodymyrzganiaiko.workload_service.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,7 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.volodymyrzganiaiko.workload_service.filter.JwtAuthenticationFilter;
+import org.volodymyrzganiaiko.workload_service.security.filter.JwtAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity

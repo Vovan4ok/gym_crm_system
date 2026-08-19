@@ -1,4 +1,4 @@
-package org.volodymyrzganiaiko.workload_service.filter;
+package org.volodymyrzganiaiko.workload_service.security.filter;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -11,7 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.volodymyrzganiaiko.workload_service.service.JwtService;
+import org.volodymyrzganiaiko.workload_service.security.service.JwtService;
 
 import java.io.IOException;
 import java.util.List;
