@@ -17,6 +17,7 @@ import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -76,7 +77,21 @@ public class GymFacade {
 
     @Transactional
     public void deleteTraineeProfile(String username) {
+        List<Training> trainings = trainingService.getTraineeTrainings(username, null, null, null, null);
+        List<TrainerWorkloadRequest> snapshot = new ArrayList<>();
+        for (Training training : trainings) {
+            snapshot.add(new TrainerWorkloadRequest(
+                    training.getTrainer().getUsername(),
+                    training.getTrainer().getFirstName(),
+                    training.getTrainer().getLastName(),
+                    training.getTrainer().getIsActive(),
+                    training.getTrainingDate(),
+                    training.getTrainingDurationInMinutes(),
+                    ActionType.DELETE
+            ));
+        }
         traineeService.deleteByUsername(username);
+        snapshot.forEach(i -> workloadClient.sendWorkload(i, MDC.get("transactionId")));
     }
 
     @Transactional

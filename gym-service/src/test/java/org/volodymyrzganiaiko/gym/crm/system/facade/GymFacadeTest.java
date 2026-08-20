@@ -95,13 +95,42 @@ class GymFacadeTest {
     }
 
     @Test
-    public void deleteTraineeProfile_success() {
+    public void deleteTraineeProfile_noTrainings_stillDeletes() {
         String input = "Tr.Ainee";
 
         gymFacade.deleteTraineeProfile(input);
 
         verify(traineeService).deleteByUsername(input);
+        verifyNoInteractions(workloadClient);
     }
+
+    @Test
+    public void deleteTraineeProfile_withTrainings_notifiesWorkloadPerTraining() {
+        Trainer trainer1 = new Trainer();
+        trainer1.setUsername("Tra.Iner");
+        trainer1.setFirstName("Tra");
+        trainer1.setLastName("Iner");
+        trainer1.setIsActive(true);
+        Trainer trainer2 = new Trainer();
+        trainer2.setUsername("Tra.Iner.1");
+        trainer2.setFirstName("Tra");
+        trainer2.setLastName("Iner");
+        trainer2.setIsActive(true);
+        Trainee trainee = new Trainee();
+        trainee.setUsername("Tra.Inee");
+        when(trainingService.getTraineeTrainings("Tra.Inee", null, null, null, null)).thenReturn(List.of(
+                new Training(1L, trainee, trainer1, new TrainingType(1L, "Yoga"), "morning yoga", LocalDate.parse("2024-01-10"), 60),
+                new Training(2L, trainee, trainer2, new TrainingType(1L, "Yoga"), "morning yoga", LocalDate.parse("2024-01-10"), 60)
+        ));
+
+        gymFacade.deleteTraineeProfile("Tra.Inee");
+
+        verify(traineeService).deleteByUsername("Tra.Inee");
+        verify(workloadClient, times(2)).sendWorkload(argThat(r -> r.actionType() == ActionType.DELETE), any());
+        verify(workloadClient).sendWorkload(argThat(r ->
+                r.actionType() == ActionType.DELETE && r.trainerUsername().equals("Tra.Iner")), any());
+        verify(workloadClient).sendWorkload(argThat(r ->
+                r.actionType() == ActionType.DELETE && r.trainerUsername().equals("Tra.Iner.1")), any());    }
 
     @Test
     public void changeTraineeStatus_activate() {
