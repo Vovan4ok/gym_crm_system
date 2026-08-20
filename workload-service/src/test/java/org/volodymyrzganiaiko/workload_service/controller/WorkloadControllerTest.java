@@ -112,4 +112,11 @@ public class WorkloadControllerTest {
                 .content(json))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    public void getWorkload_unexpectedError_returns500() throws Exception {
+        when(workloadService.getWorkload("x")).thenThrow(new RuntimeException("boom"));
+        mockMvc.perform(get("/api/workload/x"))
+                .andExpect(status().isInternalServerError());
+    }
 }
