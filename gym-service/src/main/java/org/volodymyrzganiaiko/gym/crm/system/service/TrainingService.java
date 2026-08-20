@@ -12,4 +12,5 @@ public interface TrainingService {
     List<Training> getTraineeTrainings(String traineeUsername, LocalDate from, LocalDate to, String trainerUsername, String trainingTypeName);
     List<Training> getTrainerTrainings(String trainerUsername, LocalDate from, LocalDate to, String traineeUsername);
     List<Training> findAll();
+    void deleteTraining(Long id);
 }

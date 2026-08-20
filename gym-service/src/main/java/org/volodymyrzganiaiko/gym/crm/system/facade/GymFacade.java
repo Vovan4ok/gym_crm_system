@@ -2,19 +2,24 @@ package org.volodymyrzganiaiko.gym.crm.system.facade;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
+import org.volodymyrzganiaiko.gym.crm.system.domain.Training;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 @Component
@@ -27,12 +32,13 @@ public class GymFacade {
     private final UserService userService;
     private final DtoMapper mapper;
     private final GymMetrics gymMetrics;
+    private final WorkloadClient workloadClient;
 
     private static final int MAX_REGISTRATION_ATTEMPTS = 3;
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, WorkloadClient workloadClient) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -41,6 +47,7 @@ public class GymFacade {
         this.userService = userService;
         this.mapper = mapper;
         this.gymMetrics = gymMetrics;
+        this.workloadClient = workloadClient;
     }
 
     @Transactional
@@ -70,7 +77,21 @@ public class GymFacade {
 
     @Transactional
     public void deleteTraineeProfile(String username) {
+        List<Training> trainings = trainingService.getTraineeTrainings(username, null, null, null, null);
+        List<TrainerWorkloadRequest> snapshot = new ArrayList<>();
+        for (Training training : trainings) {
+            snapshot.add(new TrainerWorkloadRequest(
+                    training.getTrainer().getUsername(),
+                    training.getTrainer().getFirstName(),
+                    training.getTrainer().getLastName(),
+                    training.getTrainer().getIsActive(),
+                    training.getTrainingDate(),
+                    training.getTrainingDurationInMinutes(),
+                    ActionType.DELETE
+            ));
+        }
         traineeService.deleteByUsername(username);
+        snapshot.forEach(i -> workloadClient.sendWorkload(i, MDC.get("transactionId")));
     }
 
     @Transactional
@@ -119,7 +140,32 @@ public class GymFacade {
 
     @Transactional
     public void createTraining(AddTrainingRequest req) {
-        gymMetrics.timeTrainingCreation(() -> trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration()));
+        AtomicReference<Training> holder = new AtomicReference<>();
+        gymMetrics.timeTrainingCreation(() -> holder.set(trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration())));
+        Training training = holder.get();
+        Trainer trainer = training.getTrainer();
+        workloadClient.sendWorkload(new TrainerWorkloadRequest(
+                trainer.getUsername(),
+                trainer.getFirstName(),
+                trainer.getLastName(),
+                trainer.getIsActive(),
+                training.getTrainingDate(),
+                training.getTrainingDurationInMinutes(),
+                ActionType.ADD
+        ), MDC.get("transactionId"));
+    }
+
+    @Transactional
+    public void deleteTraining(Long id) {
+        Training training = trainingService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Training " + id + " was not found"));
+        Trainer tr = training.getTrainer();
+        TrainerWorkloadRequest req = new TrainerWorkloadRequest(
+                tr.getUsername(), tr.getFirstName(), tr.getLastName(), tr.getIsActive(),
+                training.getTrainingDate(), training.getTrainingDurationInMinutes(), ActionType.DELETE);
+
+        trainingService.deleteTraining(id);
+        workloadClient.sendWorkload(req, MDC.get("transactionId"));
     }
 
     @Transactional(readOnly = true)

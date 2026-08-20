@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -95,5 +96,20 @@ public class TrainingControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Trainer with username Tra.Iner was not found"));
+    }
+
+    @Test
+    public void deleteTraining_success() throws Exception {
+        mockMvc.perform(delete("/api/trainings/{id}", 1))
+                .andExpect(status().isOk());
+        verify(gymFacade).deleteTraining(1L);
+    }
+
+    @Test
+    public void deleteTraining_notFound() throws Exception {
+        doThrow(new IllegalArgumentException("Not found")).when(gymFacade).deleteTraining(1L);
+
+        mockMvc.perform(delete("/api/trainings/{id}", 1))
+                .andExpect(status().isNotFound());
     }
 }

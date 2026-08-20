@@ -63,6 +63,12 @@ public class TrainingDAOImpl implements TrainingDAO {
         return session.createQuery(cr).getResultList();
     }
 
+    @Override
+    public void deleteById(Long trainingId) {
+        Optional<Training> foundOpt = findById(trainingId);
+        foundOpt.ifPresent(training -> entityManager.remove(training));
+    }
+
     private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<Training> root,
                                             String traineeUsername, String trainerUsername, LocalDate from, LocalDate to, String trainingTypeName) {
         List<Predicate> predicates = new ArrayList<>();
