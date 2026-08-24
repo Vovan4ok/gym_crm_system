@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,7 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Training;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
+import org.volodymyrzganiaiko.gym.crm.system.event.TraineeDeletedWorkloadEvent;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
@@ -33,12 +35,13 @@ public class GymFacade {
     private final DtoMapper mapper;
     private final GymMetrics gymMetrics;
     private final WorkloadClient workloadClient;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     private static final int MAX_REGISTRATION_ATTEMPTS = 3;
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, WorkloadClient workloadClient) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, WorkloadClient workloadClient, ApplicationEventPublisher applicationEventPublisher) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -48,6 +51,7 @@ public class GymFacade {
         this.mapper = mapper;
         this.gymMetrics = gymMetrics;
         this.workloadClient = workloadClient;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -91,7 +95,7 @@ public class GymFacade {
             ));
         }
         traineeService.deleteByUsername(username);
-        snapshot.forEach(i -> workloadClient.sendWorkload(i, MDC.get("transactionId")));
+        applicationEventPublisher.publishEvent(new TraineeDeletedWorkloadEvent(snapshot, MDC.get("transactionId")));
     }
 
     @Transactional

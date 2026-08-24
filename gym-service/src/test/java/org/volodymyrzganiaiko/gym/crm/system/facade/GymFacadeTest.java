@@ -2,13 +2,16 @@ package org.volodymyrzganiaiko.gym.crm.system.facade;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
 import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
+import org.volodymyrzganiaiko.gym.crm.system.event.TraineeDeletedWorkloadEvent;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
@@ -51,6 +54,9 @@ class GymFacadeTest {
 
     @Mock
     private WorkloadClient workloadClient;
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     GymFacade gymFacade;
@@ -101,7 +107,8 @@ class GymFacadeTest {
         gymFacade.deleteTraineeProfile(input);
 
         verify(traineeService).deleteByUsername(input);
-        verifyNoInteractions(workloadClient);
+        verify(applicationEventPublisher).publishEvent(
+                argThat((TraineeDeletedWorkloadEvent e) -> e.workloads().isEmpty()));
     }
 
     @Test
@@ -126,11 +133,16 @@ class GymFacadeTest {
         gymFacade.deleteTraineeProfile("Tra.Inee");
 
         verify(traineeService).deleteByUsername("Tra.Inee");
-        verify(workloadClient, times(2)).sendWorkload(argThat(r -> r.actionType() == ActionType.DELETE), any());
-        verify(workloadClient).sendWorkload(argThat(r ->
-                r.actionType() == ActionType.DELETE && r.trainerUsername().equals("Tra.Iner")), any());
-        verify(workloadClient).sendWorkload(argThat(r ->
-                r.actionType() == ActionType.DELETE && r.trainerUsername().equals("Tra.Iner.1")), any());    }
+        ArgumentCaptor<TraineeDeletedWorkloadEvent> captor =
+                ArgumentCaptor.forClass(TraineeDeletedWorkloadEvent.class);
+        verify(applicationEventPublisher).publishEvent(captor.capture());
+
+        List<TrainerWorkloadRequest> sent = captor.getValue().workloads();
+        assertEquals(2, sent.size());
+        assertTrue(sent.stream().allMatch(r -> r.actionType() == ActionType.DELETE));
+        assertTrue(sent.stream().anyMatch(r -> r.trainerUsername().equals("Tra.Iner")));
+        assertTrue(sent.stream().anyMatch(r -> r.trainerUsername().equals("Tra.Iner.1")));
+    }
 
     @Test
     public void changeTraineeStatus_activate() {
