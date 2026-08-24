@@ -4,9 +4,13 @@ COPY pom.xml .
 RUN mvn -q dependency:go-offline
 COPY src ./src
 RUN mvn -q clean package -DskipTests
+RUN java -Djarmode=tools -jar target/eureka-server-0.0.1-SNAPSHOT.jar extract --layers --destination extracted
 
 FROM eclipse-temurin:19-jre
-WORKDIR /app
-COPY --from=build /app/target/eureka-server-0.0.1-SNAPSHOT.jar app.jar
+WORKDIR /application
+COPY --from=build /app/extracted/dependencies/ ./
+COPY --from=build /app/extracted/spring-boot-loader/ ./
+COPY --from=build /app/extracted/snapshot-dependencies/ ./
+COPY --from=build /app/extracted/application/ ./
 EXPOSE 8761
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "eureka-server-0.0.1-SNAPSHOT.jar"]

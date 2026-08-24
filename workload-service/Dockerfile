@@ -5,9 +5,13 @@ RUN mvn -q dependency:go-offline
 COPY src ./src
 COPY config ./config
 RUN mvn -q clean package -DskipTests
+RUN java -Djarmode=tools -jar target/workload-service-0.0.1-SNAPSHOT.jar extract --layers --destination extracted
 
 FROM eclipse-temurin:19-jre
-WORKDIR /app
-COPY --from=build /app/target/workload-service-0.0.1-SNAPSHOT.jar app.jar
+WORKDIR /application
+COPY --from=build /app/extracted/dependencies/ ./
+COPY --from=build /app/extracted/spring-boot-loader/ ./
+COPY --from=build /app/extracted/snapshot-dependencies/ ./
+COPY --from=build /app/extracted/application/ ./
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "workload-service-0.0.1-SNAPSHOT.jar"]
