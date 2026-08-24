@@ -1,9 +1,11 @@
 package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.volodymyrzganiaiko.gym.crm.system.AbstractPostgresIT;
 import org.volodymyrzganiaiko.gym.crm.system.dao.DaoTestConfig;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainingTypeDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.TrainingType;
@@ -14,8 +16,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(DaoTestConfig.class)
-public class TrainingTypeDAOImplIT {
+public class TrainingTypeDAOImplIT extends AbstractPostgresIT {
     @Autowired
     private TrainingTypeDAO trainingTypeDAO;
 

@@ -3,9 +3,11 @@ package org.volodymyrzganiaiko.gym.crm.system.dao.impl;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.volodymyrzganiaiko.gym.crm.system.AbstractPostgresIT;
 import org.volodymyrzganiaiko.gym.crm.system.dao.DaoTestConfig;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TraineeDAO;
 import org.volodymyrzganiaiko.gym.crm.system.dao.TrainerDAO;
@@ -23,8 +25,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(DaoTestConfig.class)
-public class UserDAOImplIT {
+public class UserDAOImplIT extends AbstractPostgresIT {
     @Autowired
     private TraineeDAO traineeDAO;
 
@@ -83,8 +86,9 @@ public class UserDAOImplIT {
 
         List<User> result = userDAO.findAll();
         assertFalse(result.isEmpty());
-        assertEquals(2, result.size());
-        assertEquals("John.Doe", result.get(0).getUsername());
+        List<String> usernames = result.stream().map(User::getUsername).toList();
+        assertTrue(usernames.contains("John.Doe"));
+        assertTrue(usernames.contains("John.Doe.1"));
     }
 
     private void flushAndClear() {
