@@ -19,24 +19,38 @@ services:
     ports:
       - "8761:8761"
 
-  workload-service:
-    build: ./workload-service
+  auth-service:
+    build: ./auth-service
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka
     depends_on:
       - eureka-server
+    ports:
+      - "8082:8082"
+
+  workload-service:
+    build: ./workload-service
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
+      EUREKA_URI: http://eureka-server:8761/eureka
+    depends_on:
+      - eureka-server
+      - auth-service
     ports:
       - "8081:8081"
 
   gym-service:
     build: ./gym-service
     environment:
+      AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
       EUREKA_URI: http://eureka-server:8761/eureka
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gym_crm
     depends_on:
       postgres:
         condition: service_healthy
       eureka-server:
+        condition: service_started
+      auth-service:
         condition: service_started
     ports:
       - "8080:8080"
