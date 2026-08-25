@@ -39,6 +39,7 @@ public class AuthController {
             bruteForceProtectionService.loginFailed(loginRequest.username());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        bruteForceProtectionService.loginSucceeded(loginRequest.username());
         String token = tokenService.generateToken(loginRequest.username());
         return ResponseEntity.ok(new LoginResponse(token));
     }
