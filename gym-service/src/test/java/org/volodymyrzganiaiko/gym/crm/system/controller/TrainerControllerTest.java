@@ -18,7 +18,6 @@ import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,9 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TrainerControllerTest {
     @Mock
     private GymFacade gymFacade;
-
-    @Mock
-    private JwtService jwtService;
 
     @InjectMocks
     private TrainerController controller;
@@ -89,7 +85,6 @@ public class TrainerControllerTest {
     @Test
     public void createTrainer_success() throws Exception {
         when(gymFacade.createTrainer(any())).thenReturn(new TrainerRegistrationDTO("John.Doe", "rawPass"));
-        when(jwtService.generateToken("John.Doe")).thenReturn("test.jwt.token");
 
         TrainerRegistrationRequest request = new TrainerRegistrationRequest("John", "Doe", 2L);
         String json = objectMapper.writeValueAsString(request);
@@ -99,8 +94,7 @@ public class TrainerControllerTest {
                         .content(json))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("John.Doe"))
-                .andExpect(jsonPath("$.password").value("rawPass"))
-                .andExpect(jsonPath("$.token").value("test.jwt.token"));
+                .andExpect(jsonPath("$.password").value("rawPass"));
 
         ArgumentCaptor<Trainer> trainerCaptor = ArgumentCaptor.forClass(Trainer.class);
         verify(gymFacade).createTrainer(trainerCaptor.capture());

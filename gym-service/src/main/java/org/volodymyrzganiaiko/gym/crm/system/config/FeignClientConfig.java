@@ -2,20 +2,17 @@ package org.volodymyrzganiaiko.gym.crm.system.config;
 
 import feign.RequestInterceptor;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
+import org.volodymyrzganiaiko.gym.crm.system.service.TokenProviderService;
 
-@Configuration
 public class FeignClientConfig {
-    private final JwtService jwtService;
+    private final TokenProviderService tokenProviderService;
 
-    public FeignClientConfig(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public FeignClientConfig(TokenProviderService tokenProviderService) {
+        this.tokenProviderService = tokenProviderService;
     }
 
     @Bean
     public RequestInterceptor workloadAuthInterceptor() {
-        return template -> template.header("Authorization",
-                "Bearer " + jwtService.generateToken("gym-service"));
+        return template -> template.header("Authorization", "Bearer " + tokenProviderService.getToken());
     }
 }

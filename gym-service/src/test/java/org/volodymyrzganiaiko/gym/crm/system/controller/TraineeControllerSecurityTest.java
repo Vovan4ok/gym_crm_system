@@ -15,9 +15,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.CustomUserDetailsService;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.TokenDenylistService;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -29,14 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TraineeControllerSecurityTest {
     @Autowired
     MockMvc mockMvc;
+
     @MockitoBean
     GymFacade gymFacade;
-    @MockitoBean
-    JwtService jwtService;
-    @MockitoBean
-    CustomUserDetailsService customUserDetailsService;
-    @MockitoBean
-    TokenDenylistService tokenDenylistService;
 
     @TestConfiguration
     @EnableMethodSecurity

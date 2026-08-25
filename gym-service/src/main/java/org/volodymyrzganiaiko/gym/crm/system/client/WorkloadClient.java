@@ -5,9 +5,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.volodymyrzganiaiko.gym.crm.system.client.impl.WorkloadClientFallback;
+import org.volodymyrzganiaiko.gym.crm.system.config.FeignClientConfig;
 import org.volodymyrzganiaiko.gym.crm.system.dto.TrainerWorkloadRequest;
 
-@FeignClient(name="workload-service", fallback = WorkloadClientFallback.class)
+@FeignClient(name="workload-service", fallback = WorkloadClientFallback.class, configuration = FeignClientConfig.class)
 public interface WorkloadClient {
     @PostMapping("/api/workload")
     void sendWorkload(@RequestBody TrainerWorkloadRequest request, @RequestHeader("X-Transaction-Id") String transactionId);

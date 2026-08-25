@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +15,6 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 
 import jakarta.validation.Valid;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,14 +23,14 @@ import java.util.List;
 @RequestMapping("/api/trainees")
 @Tag(name = "Trainees")
 public class TraineeController {
-    @Autowired
-    private GymFacade gymFacade;
+    private final GymFacade gymFacade;
 
-    @Autowired
-    private JwtService jwtService;
+    public TraineeController(GymFacade gymFacade) {
+        this.gymFacade = gymFacade;
+    }
 
     @PostMapping
-    @Operation(summary = "Register a trainee", description = "Creates a trainee and returns the generated username, the generated password and a JWT bearer token for the new user. No authentication is required.")
+    @Operation(summary = "Register a trainee", description = "Creates a trainee and returns the generated username and the generated password for the new user. No authentication is required.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Trainee was successfully created"),
             @ApiResponse(responseCode = "400", description = "The request body failed validation")
@@ -40,9 +38,8 @@ public class TraineeController {
     public ResponseEntity<RegistrationResponse> createTrainee(@Valid @RequestBody TraineeRegistrationRequest  req) {
         Trainee trainee = mapTrainee(req.firstName(), req.lastName(), null, req.dateOfBirth(), req.address());
         TraineeRegistrationDTO dto = gymFacade.createTrainee(trainee);
-        String token = jwtService.generateToken(dto.username());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RegistrationResponse(dto.username(), dto.password(), token));
+                .body(new RegistrationResponse(dto.username(), dto.password()));
     }
 
     @GetMapping("/{username}")

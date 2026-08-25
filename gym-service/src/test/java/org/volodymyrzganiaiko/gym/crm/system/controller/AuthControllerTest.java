@@ -12,24 +12,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
-import org.volodymyrzganiaiko.gym.crm.system.dto.LoginRequest;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
 import org.volodymyrzganiaiko.gym.crm.system.handler.GlobalExceptionHandler;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.BruteForceProtectionService;
-import org.volodymyrzganiaiko.gym.crm.system.security.service.JwtService;
 
-import static org.hamcrest.Matchers.not;
+import java.util.List;
+
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,11 +36,6 @@ public class AuthControllerTest {
 
     @Mock
     private AuthenticationManager authenticationManager;
-
-    @Mock
-    private JwtService jwtService;
-    @Mock
-    private BruteForceProtectionService bruteForceProtectionService;
 
     @InjectMocks
     private AuthController controller;
@@ -70,57 +60,8 @@ public class AuthControllerTest {
     }
 
     @Test
-    public void login_post() throws Exception {
-        LoginRequest input = new LoginRequest("John.Doe", "rawPass");
-        String json = objectMapper.writeValueAsString(input);
-
-        when(jwtService.generateToken("John.Doe")).thenReturn("test.jwt.token");
-
-        mockMvc.perform(post("/api/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("test.jwt.token"));
-    }
-
-    @Test
-    public void login_invalidCredentials() throws Exception {
-        when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
-
-        LoginRequest input = new LoginRequest("John.Doe", "rawPass");
-        String json = objectMapper.writeValueAsString(input);
-
-        mockMvc.perform(post("/api/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.message").value("Wrong username or password"))
-                .andExpect(content().string(not(containsString("rawPass"))));
-
-        verify(bruteForceProtectionService).loginFailed("John.Doe");
-    }
-
-    @Test
-    public void login_blocked() throws Exception {
-        when(bruteForceProtectionService.isBlocked("John.Doe")).thenReturn(true);
-
-        LoginRequest input = new LoginRequest("John.Doe", "rawPass");
-        String json = objectMapper.writeValueAsString(input);
-
-        mockMvc.perform(post("/api/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.status").value(429))
-                .andExpect(jsonPath("$.message").value("Too many login failed attempts"))
-                .andExpect(content().string(not(containsString("rawPass"))));
-
-        verifyNoInteractions(authenticationManager);
-    }
-    @Test
     public void changePassword_success() throws Exception {
-        authenticateAs("John.Doe");
+        authenticateAs();
 
         ChangePasswordRequest request = new ChangePasswordRequest("newPass");
         String json = objectMapper.writeValueAsString(request);
@@ -147,9 +88,9 @@ public class AuthControllerTest {
         verifyNoInteractions(gymFacade);
     }
 
-    private void authenticateAs(String username) {
-        UserDetails principal = User.withUsername(username).password("x").authorities("ROLE_USER").build();
+    private void authenticateAs() {
+        Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject("John.Doe").build();
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+                new UsernamePasswordAuthenticationToken(jwt, null, List.of()));
     }
 }

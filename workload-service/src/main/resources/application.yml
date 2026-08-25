@@ -1,12 +1,14 @@
 server:
   port: 8081
 
-jwt:
-  secret: "some-random-jwt-secret-string-username-password"
-
 spring:
   application:
     name: workload-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
 
 eureka:
   client:

@@ -16,7 +16,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import org.volodymyrzganiaiko.gym.crm.system.dto.ErrorResponse;
 
 import jakarta.validation.ConstraintViolationException;
-import org.volodymyrzganiaiko.gym.crm.system.security.exception.UserBlockedException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -49,14 +48,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED, "Wrong username or password");
     }
 
-    @ExceptionHandler(UserBlockedException.class)
-    public ResponseEntity<Object> handleTooManyRequests(UserBlockedException e) {
-        log.warn("Too many login failed attempts {}", e.getMessage());
-        return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "Too many login failed attempts");
-    }
-
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDenied(AccessDeniedException e) {
+        log.warn("Access denied {}", e.getMessage());
         return buildResponse(HttpStatus.FORBIDDEN, "Access is denied");
     }
 

@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +16,11 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/trainings")
 @Tag(name = "Trainings")
 public class TrainingController {
-    @Autowired
-    private GymFacade gymFacade;
+    private final GymFacade gymFacade;
+
+    public TrainingController(GymFacade gymFacade) {
+        this.gymFacade = gymFacade;
+    }
 
     @PostMapping
     @Operation(summary = "Add a training", description = "Creates a training and links the trainee with the trainer if they were not linked yet. The training type is taken from the trainer's specialization.")
