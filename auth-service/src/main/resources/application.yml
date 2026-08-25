@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: auth-service
+server:
+  port: 8082
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+jwt:
+  expiration-seconds: 3600
+security:
+  brute-force:
+    max-attempts: 3
+    block-duration-ms: 300000
+    cleanup-interval-ms: 60000
