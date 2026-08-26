@@ -15,12 +15,16 @@ services:
       retries: 5
 
   eureka-server:
-    build: ./eureka-server
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
     ports:
       - "8761:8761"
 
   auth-service:
-    build: ./auth-service
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka
     depends_on:
@@ -29,7 +33,9 @@ services:
       - "8082:8082"
 
   workload-service:
-    build: ./workload-service
+    build:
+      context: .
+      dockerfile: workload-service/Dockerfile
     environment:
       AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
       EUREKA_URI: http://eureka-server:8761/eureka
@@ -40,7 +46,9 @@ services:
       - "8081:8081"
 
   gym-service:
-    build: ./gym-service
+    build:
+      context: .
+      dockerfile: gym-service/Dockerfile
     environment:
       AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
       EUREKA_URI: http://eureka-server:8761/eureka
