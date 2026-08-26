@@ -3,7 +3,7 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn -q dependency:go-offline
 COPY src ./src
-COPY config ./config
+COPY ../config ./config
 RUN mvn -q clean package -DskipTests
 RUN java -Djarmode=tools -jar target/auth-service-0.0.1-SNAPSHOT.jar extract --layers --destination extracted
 
