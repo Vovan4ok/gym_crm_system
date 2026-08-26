@@ -17,6 +17,7 @@ import org.volodymyrzganiaiko.auth_service.client.GymAuthClient;
 import org.volodymyrzganiaiko.auth_service.dto.LoginRequest;
 import org.volodymyrzganiaiko.auth_service.handler.GlobalExceptionHandler;
 import org.volodymyrzganiaiko.auth_service.service.BruteForceProtectionService;
+import org.volodymyrzganiaiko.auth_service.service.RefreshTokenService;
 import org.volodymyrzganiaiko.auth_service.service.TokenService;
 
 import java.util.Map;
@@ -35,6 +36,8 @@ class AuthControllerTest {
     private TokenService tokenService;
     @Mock
     private BruteForceProtectionService bruteForceProtectionService;
+    @Mock
+    private RefreshTokenService refreshTokenService;
     @InjectMocks
     private AuthController controller;
 
@@ -61,12 +64,14 @@ class AuthControllerTest {
     @Test
     void login_success() throws Exception {
         when(tokenService.generateToken("John.Doe")).thenReturn("test.token");
+        when(refreshTokenService.issue("John.Doe")).thenReturn("refresh.token");
 
         mockMvc.perform(post("/api/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("test.token"));
+                .andExpect(jsonPath("$.accessToken").value("test.token"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh.token"));
 
         verify(bruteForceProtectionService).loginSucceeded("John.Doe");
     }
@@ -82,6 +87,7 @@ class AuthControllerTest {
 
         verify(bruteForceProtectionService).loginFailed("John.Doe");
         verifyNoInteractions(tokenService);
+        verifyNoInteractions(refreshTokenService);
     }
 
     @Test

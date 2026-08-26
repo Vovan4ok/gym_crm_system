@@ -14,6 +14,9 @@ management:
         include: health, info
 jwt:
   expiration-seconds: 3600
+  refresh-expiration-seconds: 604800
+  refresh-cleanup-interval-ms: 3600000
+
 security:
   brute-force:
     max-attempts: 3

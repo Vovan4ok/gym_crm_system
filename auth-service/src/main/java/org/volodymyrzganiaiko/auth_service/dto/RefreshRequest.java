@@ -1,6 +1,8 @@
 package org.volodymyrzganiaiko.auth_service.dto;
 
-public record LoginResponse(String accessToken, String refreshToken) {
+import jakarta.validation.constraints.NotBlank;
+
+public record RefreshRequest(@NotBlank String refreshToken) {
     @Override
     public String toString() {
         return "";
