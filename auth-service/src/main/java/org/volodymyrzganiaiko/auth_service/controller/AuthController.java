@@ -1,6 +1,10 @@
 package org.volodymyrzganiaiko.auth_service.controller;
 
 import feign.FeignException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +22,7 @@ import org.volodymyrzganiaiko.auth_service.service.TokenService;
 
 @RestController
 @RequestMapping("/api/login")
+@Tag(name = "User authentication")
 public class AuthController {
     private final GymAuthClient gymAuthClient;
     private final TokenService tokenService;
@@ -32,6 +37,13 @@ public class AuthController {
     }
 
     @PostMapping
+    @Operation(summary = "Authenticate a user", description = "Verifies the credentials against gym-service and returns a signed access token together with an opaque refresh token.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Authentication succeeded; access and refresh tokens returned"),
+            @ApiResponse(responseCode = "400", description = "The request body failed validation"),
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "429", description = "Too many failed login attempts; the user is temporarily blocked")
+    })
     public ResponseEntity<LoginResponse> auth(@Valid @RequestBody LoginRequest loginRequest) {
         if (bruteForceProtectionService.isBlocked(loginRequest.username())) {
             throw new UserBlockedException("Too many failed login attempts");
