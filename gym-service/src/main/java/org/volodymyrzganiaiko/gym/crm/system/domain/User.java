@@ -41,6 +41,10 @@ public abstract class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     public User(String firstName, String lastName, String username, String password, Boolean isActive) {
         this.firstName = firstName;
         this.lastName = lastName;

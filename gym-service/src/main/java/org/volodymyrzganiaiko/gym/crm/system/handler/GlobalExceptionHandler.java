@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -49,8 +50,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException e) {
-        log.warn("Access denied {}", e.getMessage());
+    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied {}", ex.getMessage());
         return buildResponse(HttpStatus.FORBIDDEN, "Access is denied");
     }
 
@@ -69,6 +70,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleExceptions(Exception ex) {
         log.error("Unexpected error", ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Object> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        log.warn("Concurrent update conflict {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, "The record was updated by another request, please retry");
     }
 
     private ResponseEntity<Object> buildResponse(HttpStatus status, String message) {
