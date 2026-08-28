@@ -5,6 +5,8 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     show-sql: false
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
 
 logging:
   level:

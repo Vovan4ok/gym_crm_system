@@ -8,6 +8,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
 
 logging:
   level:

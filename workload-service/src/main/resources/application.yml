@@ -2,6 +2,8 @@ server:
   port: 8081
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   application:
     name: workload-service
   security:
@@ -10,7 +12,6 @@ spring:
         jwt:
           jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
   activemq:
-    broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
     user: admin
     password: admin
 

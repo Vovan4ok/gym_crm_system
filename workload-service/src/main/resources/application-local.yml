@@ -1,0 +1,3 @@
+spring:
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
