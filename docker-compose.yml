@@ -41,9 +41,12 @@ services:
       EUREKA_URI: http://eureka-server:8761/eureka
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
     depends_on:
-      - eureka-server
-      - auth-service
-      - activemq
+      eureka-server:
+        condition: service_started
+      auth-service:
+        condition: service_started
+      activemq:
+        condition: service_healthy
     ports:
       - "8081:8081"
 
@@ -64,7 +67,7 @@ services:
       auth-service:
         condition: service_started
       activemq:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8080:8080"
   activemq:
@@ -75,5 +78,11 @@ services:
     environment:
       ACTIVEMQ_CONNECTION_USER: admin
       ACTIVEMQ_CONNECTION_PASSWORD: admin
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo > /dev/tcp/localhost/61616" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 volumes:
   gym_crm_pgdata:
