@@ -39,9 +39,11 @@ services:
     environment:
       AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
       EUREKA_URI: http://eureka-server:8761/eureka
+      ACTIVEMQ_BROKER_URL: tcp://activemq:61616
     depends_on:
       - eureka-server
       - auth-service
+      - activemq
     ports:
       - "8081:8081"
 
@@ -53,6 +55,7 @@ services:
       AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
       EUREKA_URI: http://eureka-server:8761/eureka
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gym_crm
+      ACTIVEMQ_BROKER_URL: tcp://activemq:61616
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +63,17 @@ services:
         condition: service_started
       auth-service:
         condition: service_started
+      activemq:
+        condition: service_started
     ports:
       - "8080:8080"
+  activemq:
+    image: apache/activemq-classic:5.18.3
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+    environment:
+      ACTIVEMQ_CONNECTION_USER: admin
+      ACTIVEMQ_CONNECTION_PASSWORD: admin
 volumes:
   gym_crm_pgdata:
