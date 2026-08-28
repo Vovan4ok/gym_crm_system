@@ -4,5 +4,5 @@ import org.volodymyrzganiaiko.gym.crm.system.dto.TrainerWorkloadRequest;
 
 import java.util.List;
 
-public record TraineeDeletedWorkloadEvent(List<TrainerWorkloadRequest> workloads, String transactionId) {
+public record WorkloadNotificationEvent(List<TrainerWorkloadRequest> requests, String transactionId) {
 }

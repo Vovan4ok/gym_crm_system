@@ -78,3 +78,6 @@ resilience4j:
         wait-duration-in-open-state: 10s
         permitted-number-of-calls-in-half-open-state: 3
         register-health-indicator: true
+
+messaging:
+  workload-queue: gym.workload.queue

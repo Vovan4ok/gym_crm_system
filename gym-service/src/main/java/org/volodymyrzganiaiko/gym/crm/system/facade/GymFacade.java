@@ -8,12 +8,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Training;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
-import org.volodymyrzganiaiko.gym.crm.system.event.TraineeDeletedWorkloadEvent;
+import org.volodymyrzganiaiko.gym.crm.system.event.WorkloadNotificationEvent;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
@@ -34,14 +33,13 @@ public class GymFacade {
     private final UserService userService;
     private final DtoMapper mapper;
     private final GymMetrics gymMetrics;
-    private final WorkloadClient workloadClient;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     private static final int MAX_REGISTRATION_ATTEMPTS = 3;
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, WorkloadClient workloadClient, ApplicationEventPublisher applicationEventPublisher) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, ApplicationEventPublisher applicationEventPublisher) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -50,7 +48,6 @@ public class GymFacade {
         this.userService = userService;
         this.mapper = mapper;
         this.gymMetrics = gymMetrics;
-        this.workloadClient = workloadClient;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -95,7 +92,7 @@ public class GymFacade {
             ));
         }
         traineeService.deleteByUsername(username);
-        applicationEventPublisher.publishEvent(new TraineeDeletedWorkloadEvent(snapshot, MDC.get("transactionId")));
+        applicationEventPublisher.publishEvent(new WorkloadNotificationEvent(snapshot, MDC.get("transactionId")));
     }
 
     @Transactional
@@ -148,15 +145,16 @@ public class GymFacade {
         gymMetrics.timeTrainingCreation(() -> holder.set(trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration())));
         Training training = holder.get();
         Trainer trainer = training.getTrainer();
-        workloadClient.sendWorkload(new TrainerWorkloadRequest(
-                trainer.getUsername(),
-                trainer.getFirstName(),
-                trainer.getLastName(),
-                trainer.getIsActive(),
-                training.getTrainingDate(),
-                training.getTrainingDurationInMinutes(),
-                ActionType.ADD
-        ), MDC.get("transactionId"));
+        applicationEventPublisher.publishEvent(new WorkloadNotificationEvent(
+                List.of(new TrainerWorkloadRequest(
+                        trainer.getUsername(),
+                        trainer.getFirstName(),
+                        trainer.getLastName(),
+                        trainer.getIsActive(),
+                        training.getTrainingDate(),
+                        training.getTrainingDurationInMinutes(),
+                        ActionType.ADD
+                        )), MDC.get("transactionId")));
     }
 
     @Transactional
@@ -169,7 +167,9 @@ public class GymFacade {
                 training.getTrainingDate(), training.getTrainingDurationInMinutes(), ActionType.DELETE);
 
         trainingService.deleteTraining(id);
-        workloadClient.sendWorkload(req, MDC.get("transactionId"));
+        applicationEventPublisher.publishEvent(
+                new WorkloadNotificationEvent(List.of(req), MDC.get("transactionId"))
+        );
     }
 
     @Transactional(readOnly = true)
