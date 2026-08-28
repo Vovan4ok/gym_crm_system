@@ -9,6 +9,10 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
+  activemq:
+    broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
+    user: admin
+    password: admin
 
 eureka:
   client:
@@ -20,3 +24,6 @@ management:
     web:
       exposure:
         include: health, info
+
+messaging:
+  workload-queue: gym.workload.queue
