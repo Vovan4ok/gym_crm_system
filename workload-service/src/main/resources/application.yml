@@ -2,6 +2,8 @@ server:
   port: 8081
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   application:
     name: workload-service
   security:
@@ -9,6 +11,9 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
+  activemq:
+    user: admin
+    password: admin
 
 eureka:
   client:
@@ -20,3 +25,8 @@ management:
     web:
       exposure:
         include: health, info
+
+messaging:
+  workload-queue: gym.workload.queue
+  workload-dlq: gym.workload.dlq
+  workload-concurrency: 3-10

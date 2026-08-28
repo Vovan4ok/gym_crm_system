@@ -8,10 +8,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
 import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
-import org.volodymyrzganiaiko.gym.crm.system.event.TraineeDeletedWorkloadEvent;
+import org.volodymyrzganiaiko.gym.crm.system.event.WorkloadNotificationEvent;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
@@ -51,9 +50,6 @@ class GymFacadeTest {
 
     @Mock
     private GymMetrics gymMetrics;
-
-    @Mock
-    private WorkloadClient workloadClient;
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
@@ -108,7 +104,7 @@ class GymFacadeTest {
 
         verify(traineeService).deleteByUsername(input);
         verify(applicationEventPublisher).publishEvent(
-                argThat((TraineeDeletedWorkloadEvent e) -> e.workloads().isEmpty()));
+                argThat((WorkloadNotificationEvent e) -> e.requests().isEmpty()));
     }
 
     @Test
@@ -133,11 +129,11 @@ class GymFacadeTest {
         gymFacade.deleteTraineeProfile("Tra.Inee");
 
         verify(traineeService).deleteByUsername("Tra.Inee");
-        ArgumentCaptor<TraineeDeletedWorkloadEvent> captor =
-                ArgumentCaptor.forClass(TraineeDeletedWorkloadEvent.class);
+        ArgumentCaptor<WorkloadNotificationEvent> captor =
+                ArgumentCaptor.forClass(WorkloadNotificationEvent.class);
         verify(applicationEventPublisher).publishEvent(captor.capture());
 
-        List<TrainerWorkloadRequest> sent = captor.getValue().workloads();
+        List<TrainerWorkloadRequest> sent = captor.getValue().requests();
         assertEquals(2, sent.size());
         assertTrue(sent.stream().allMatch(r -> r.actionType() == ActionType.DELETE));
         assertTrue(sent.stream().anyMatch(r -> r.trainerUsername().equals("Tra.Iner")));
@@ -381,8 +377,10 @@ class GymFacadeTest {
 
         gymFacade.createTraining(req);
 
-        verify(workloadClient).sendWorkload(argThat(r ->
-                r.actionType() == ActionType.ADD && r.trainerUsername().equals("Tra.Iner")), any());
+        verify(applicationEventPublisher).publishEvent(argThat((WorkloadNotificationEvent e) ->
+                e.requests().size() == 1
+                        && e.requests().get(0).actionType() == ActionType.ADD
+                        && e.requests().get(0).trainerUsername().equals("Tra.Iner")));
         verify(trainingService).addTraining("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
     }
 
@@ -486,14 +484,16 @@ class GymFacadeTest {
         gymFacade.deleteTraining(1L);
 
         verify(trainingService).deleteTraining(1L);
-        verify(workloadClient).sendWorkload(argThat(r -> r.actionType()==ActionType.DELETE && r.trainerUsername().equals("Tra.Iner")), any());
-    }
+        verify(applicationEventPublisher).publishEvent(argThat((WorkloadNotificationEvent e) ->
+                e.requests().size() == 1
+                        && e.requests().get(0).actionType() == ActionType.DELETE
+                        && e.requests().get(0).trainerUsername().equals("Tra.Iner")));    }
 
     @Test
     public void deleteTraining_notFound() {
         when(trainingService.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> gymFacade.deleteTraining(1L));
-        verifyNoInteractions(workloadClient);
+        verifyNoInteractions(applicationEventPublisher);
     }
 }
