@@ -28,3 +28,4 @@ management:
 messaging:
   workload-queue: gym.workload.queue
   workload-dlq: gym.workload.dlq
+  workload-concurrency: 3-10

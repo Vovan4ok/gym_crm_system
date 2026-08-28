@@ -32,7 +32,8 @@ public class WorkloadMessageListener {
         this.dlqQueue = dlqQueue;
     }
 
-    @JmsListener(destination = "${messaging.workload-queue}")
+    @JmsListener(destination = "${messaging.workload-queue}",
+    concurrency = "${messaging.workload-concurrency}")
     public void onWorkload(@Payload TrainerWorkloadRequest request,
                            @Header(name = "transactionId", required = false) String transactionId) {
         MDC.put("transactionId", transactionId);

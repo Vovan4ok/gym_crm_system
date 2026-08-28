@@ -31,6 +31,7 @@ public class WorkloadNotificationListener {
             event.requests().forEach(request ->
                     jmsTemplate.convertAndSend(queue, request, message -> {
                         message.setStringProperty("transactionId", event.transactionId());
+                        message.setStringProperty("JMSXGroupID", request.trainerUsername());
                         return message;
                     }));
         } finally {
