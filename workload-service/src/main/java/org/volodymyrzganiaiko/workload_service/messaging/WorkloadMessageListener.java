@@ -1,21 +1,35 @@
 package org.volodymyrzganiaiko.workload_service.messaging;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jms.annotation.JmsListener;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerWorkloadRequest;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Component
 @Slf4j
 public class WorkloadMessageListener {
     private final WorkloadService workloadService;
+    private final JmsTemplate jmsTemplate;
+    private final Validator validator;
+    private final String dlqQueue;
 
-    public WorkloadMessageListener(WorkloadService workloadService) {
+    public WorkloadMessageListener(WorkloadService workloadService, JmsTemplate jmsTemplate,
+                                   Validator validator, @Value("${messaging.workload-dlq}") String dlqQueue) {
         this.workloadService = workloadService;
+        this.jmsTemplate = jmsTemplate;
+        this.validator = validator;
+        this.dlqQueue = dlqQueue;
     }
 
     @JmsListener(destination = "${messaging.workload-queue}")
@@ -23,7 +37,21 @@ public class WorkloadMessageListener {
                            @Header(name = "transactionId", required = false) String transactionId) {
         MDC.put("transactionId", transactionId);
         try {
-            log.info("Received workload message: trainer={}, action={}, minutes={}", request.trainerUsername(), request.actionType(), request.trainingDuration());
+            Set<ConstraintViolation<TrainerWorkloadRequest>> violations = validator.validate(request);
+            if (!violations.isEmpty()) {
+                String reason = violations.stream()
+                        .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                        .collect(Collectors.joining("; "));
+                log.warn("Invalid workload message, routing to DLQ: {}", reason);
+                jmsTemplate.convertAndSend(dlqQueue, request, message -> {
+                    message.setStringProperty("transactionId", transactionId);
+                    message.setStringProperty("dlqReason", reason);
+                    return message;
+                });
+                return;
+            }
+            log.info("Received workload message: trainer={}, action={}, minutes={}",
+                    request.trainerUsername(), request.actionType(), request.trainingDuration());
             workloadService.process(request);
         } finally {
             MDC.clear();
