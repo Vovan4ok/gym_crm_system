@@ -13,10 +13,6 @@ spring:
     locale-resolver: fixed
   profiles:
     active: local
-  cloud:
-    openfeign:
-      circuitbreaker:
-        enabled: true
   security:
     oauth2:
       resourceserver:
@@ -30,9 +26,6 @@ spring:
 security:
   cors:
     allowed-origins: "https://localhost:3000"
-  service-client:
-    id: gym-service
-    secret: "gym-service-secret-very-secret-code"
 
 springdoc:
   api-docs:
@@ -49,7 +42,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, prometheus, circuitbreakers
+        include: health, info, metrics, prometheus
   endpoint:
     health:
       show-details: always
@@ -66,18 +59,6 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
-
-resilience4j:
-  circuitbreaker:
-    configs:
-      default:
-        sliding-window-type: COUNT_BASED
-        sliding-window-size: 5
-        minimum-number-of-calls: 5
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 10s
-        permitted-number-of-calls-in-half-open-state: 3
-        register-health-indicator: true
 
 messaging:
   workload-queue: gym.workload.queue

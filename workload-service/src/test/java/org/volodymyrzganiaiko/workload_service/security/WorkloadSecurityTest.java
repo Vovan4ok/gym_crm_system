@@ -10,23 +10,24 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.volodymyrzganiaiko.workload_service.dto.TrainerSummaryResponse;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
+import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -40,10 +41,6 @@ public class WorkloadSecurityTest {
     private WorkloadService workloadService;
 
     private static final RSAKey RSA_KEY = generateKey();
-
-    private static final String BODY = """
-              {"trainerUsername":"Tra.Iner","firstName":"Tra","lastName":"Iner",\
-              "isActive":true,"trainingDate":"2026-09-01","trainingDuration":60,"actionType":"ADD"}""";
 
     @TestConfiguration
     static class TestDecoderConfig {
@@ -82,30 +79,27 @@ public class WorkloadSecurityTest {
 
     @Test
     void validToken_ok() throws Exception {
+        when(workloadService.getWorkload("x"))
+                .thenReturn(new TrainerSummaryResponse("x", "Tra", "Iner", true, List.of()));
         String token = mint(Instant.now().plusSeconds(3600));
-        mockMvc.perform(post("/api/workload")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(BODY))
+
+        mockMvc.perform(get("/api/workload/x")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
-        verify(workloadService).process(any());
+        verify(workloadService).getWorkload("x");
     }
 
     @Test
     void noToken_401() throws Exception {
-        mockMvc.perform(post("/api/workload")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(BODY))
+        mockMvc.perform(get("/api/workload/x"))
                 .andExpect(status().isUnauthorized());
         verifyNoInteractions(workloadService);
     }
 
     @Test
     void garbageToken_401() throws Exception {
-        mockMvc.perform(post("/api/workload")
-                        .header("Authorization", "Bearer not.a.jwt")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(BODY))
+        mockMvc.perform(get("/api/workload/x")
+                        .header("Authorization", "Bearer not.a.jwt"))
                 .andExpect(status().isUnauthorized());
         verifyNoInteractions(workloadService);
     }
@@ -113,10 +107,8 @@ public class WorkloadSecurityTest {
     @Test
     void expiredToken_401() throws Exception {
         String token = mint(Instant.now().minusSeconds(60));
-        mockMvc.perform(post("/api/workload")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(BODY))
+        mockMvc.perform(get("/api/workload/x")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized());
         verifyNoInteractions(workloadService);
     }
