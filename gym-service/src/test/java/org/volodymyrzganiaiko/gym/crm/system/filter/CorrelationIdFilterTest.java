@@ -13,12 +13,14 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TransactionIdFilterTest {
-    private final TransactionIdFilter filter = new TransactionIdFilter();
+public class CorrelationIdFilterTest {
+    private final CorrelationIdFilter filter = new CorrelationIdFilter();
 
     @Mock
     private FilterChain chain;
@@ -48,24 +50,24 @@ public class TransactionIdFilterTest {
     }
 
     @Test
-    public void doFilter_setsTransactionIdDuringChain() throws Exception {
+    public void doFilter_setsCorrelationIdDuringChain() throws Exception {
         String[] captured = new String[1];
         doAnswer(invocation -> {
-            captured[0] = MDC.get("transactionId");
+            captured[0] = MDC.get("correlationId");
             return null;
         }).when(chain).doFilter(request, response);
 
         filter.doFilter(request, response, chain);
 
         assertNotNull(captured[0]);
-        assertEquals(8, captured[0].length());
+        assertDoesNotThrow(() -> UUID.fromString(captured[0]));
     }
 
     @Test
     public void doFilter_clearsMdcAfterCompletion() throws Exception {
         filter.doFilter(request, response, chain);
 
-        assertNull(MDC.get("transactionId"));
+        assertNull(MDC.get("correlationId"));
     }
 
     @Test
@@ -73,7 +75,7 @@ public class TransactionIdFilterTest {
         doThrow(new ServletException("boom")).when(chain).doFilter(request, response);
 
         assertThrows(ServletException.class, () -> filter.doFilter(request, response, chain));
-        assertNull(MDC.get("transactionId"));
+        assertNull(MDC.get("correlationId"));
     }
 
     @Test
@@ -83,5 +85,33 @@ public class TransactionIdFilterTest {
         filter.doFilter(request, response, chain);
 
         verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    public void doFilter_getsHeaderCorrelationId() throws Exception {
+        request.addHeader("X-Correlation-Id", "my-test-123");
+        String[] captured = new String[1];
+        doAnswer(invocation -> {
+            captured[0] = MDC.get("correlationId");
+            return null;
+        }).when(chain).doFilter(request, response);
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("my-test-123", captured[0]);
+    }
+
+    @Test
+    public void doFilter_givesTheSameCorrelationIdHeader() throws Exception {
+        request.addHeader("X-Correlation-Id", "my-test-123");
+        String[] captured = new String[1];
+        doAnswer(invocation -> {
+            captured[0] = MDC.get("correlationId");
+            return null;
+        }).when(chain).doFilter(request, response);
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals(captured[0], response.getHeader("X-Correlation-ID"));
     }
 }

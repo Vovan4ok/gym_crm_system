@@ -25,12 +25,12 @@ public class WorkloadNotificationListener {
     @Async("workloadExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onWorkloadNotification(WorkloadNotificationEvent event) {
-        MDC.put("transactionId", event.transactionId());
+        MDC.put("correlationId", event.correlationId());
         try {
             log.info("Sending {} workload messages after commit", event.requests().size());
             event.requests().forEach(request ->
                     jmsTemplate.convertAndSend(queue, request, message -> {
-                        message.setStringProperty("transactionId", event.transactionId());
+                        message.setStringProperty("correlationId", event.correlationId());
                         message.setStringProperty("JMSXGroupID", request.trainerUsername());
                         return message;
                     }));

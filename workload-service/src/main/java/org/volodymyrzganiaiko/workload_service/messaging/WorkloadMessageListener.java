@@ -35,8 +35,8 @@ public class WorkloadMessageListener {
     @JmsListener(destination = "${messaging.workload-queue}",
     concurrency = "${messaging.workload-concurrency}")
     public void onWorkload(@Payload TrainerWorkloadRequest request,
-                           @Header(name = "transactionId", required = false) String transactionId) {
-        MDC.put("transactionId", transactionId);
+                           @Header(name = "correlationId", required = false) String correlationId) {
+        MDC.put("correlationId", correlationId);
         try {
             Set<ConstraintViolation<TrainerWorkloadRequest>> violations = validator.validate(request);
             if (!violations.isEmpty()) {
@@ -45,7 +45,7 @@ public class WorkloadMessageListener {
                         .collect(Collectors.joining("; "));
                 log.warn("Invalid workload message, routing to DLQ: {}", reason);
                 jmsTemplate.convertAndSend(dlqQueue, request, message -> {
-                    message.setStringProperty("transactionId", transactionId);
+                    message.setStringProperty("correlationId", correlationId);
                     message.setStringProperty("dlqReason", reason);
                     return message;
                 });

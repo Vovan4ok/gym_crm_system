@@ -12,7 +12,7 @@ maintains a per-trainer monthly workload summary.
 - Invalid messages (failing bean validation) are routed to
   `gym.workload.dlq` with a `dlqReason`; messages that cannot be
   deserialized at all fall back to the broker's default `ActiveMQ.DLQ`.
-- `transactionId` travels as a JMS property and is restored into the MDC for
+- `correlationId` travels as a JMS property and is restored into the MDC for
   end-to-end tracing.
 
 ## Scaling and state

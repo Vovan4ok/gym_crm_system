@@ -15,20 +15,18 @@ import java.util.UUID;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class TransactionIdFilter implements Filter {
-    private static final Logger log = LoggerFactory.getLogger(TransactionIdFilter.class);
+public class CorrelationIdFilter implements Filter {
+    private static final Logger log = LoggerFactory.getLogger(CorrelationIdFilter.class);
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse resp = (HttpServletResponse) response;
         try {
-            String txId = req.getHeader("X-Transaction-Id");
-            if (txId == null) {
-                txId = UUID.randomUUID().toString().substring(0, 8);
-            }
-            MDC.put("transactionId", txId);
+            String correlationId = req.getHeader("X-Correlation-Id") == null ? UUID.randomUUID().toString() : req.getHeader("X-Correlation-Id");
+            MDC.put("correlationId", correlationId);
             log.info("Incoming request: {} {}", req.getMethod(), req.getRequestURI());
+            resp.setHeader("X-Correlation-Id", correlationId);
             chain.doFilter(request, response);
             log.info("Response: {}", resp.getStatus());
         } finally {

@@ -92,7 +92,7 @@ public class GymFacade {
             ));
         }
         traineeService.deleteByUsername(username);
-        applicationEventPublisher.publishEvent(new WorkloadNotificationEvent(snapshot, MDC.get("transactionId")));
+        applicationEventPublisher.publishEvent(new WorkloadNotificationEvent(snapshot, MDC.get("correlationId")));
     }
 
     @Transactional
@@ -154,7 +154,7 @@ public class GymFacade {
                         training.getTrainingDate(),
                         training.getTrainingDurationInMinutes(),
                         ActionType.ADD
-                        )), MDC.get("transactionId")));
+                        )), MDC.get("correlationId")));
     }
 
     @Transactional
@@ -168,7 +168,7 @@ public class GymFacade {
 
         trainingService.deleteTraining(id);
         applicationEventPublisher.publishEvent(
-                new WorkloadNotificationEvent(List.of(req), MDC.get("transactionId"))
+                new WorkloadNotificationEvent(List.of(req), MDC.get("correlationId"))
         );
     }
 
