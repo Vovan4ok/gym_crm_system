@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: gym
+          uri: ${GYM_URI:http://localhost:8080}
+          predicates:
+            - Path=/api/trainees/**,/api/trainers/**,/api/trainings/**,/api/training-types/**
+        - id: gym-change-password
+          uri: ${GYM_URI:http://localhost:8080}
+          predicates:
+            - Path=/api/login
+            - Method=PUT
+        - id: auth-login
+          uri: ${AUTH_URI:http://localhost:8082}
+          predicates:
+            - Path=/api/login
+            - Method=POST
+        - id: auth-refresh
+          uri: ${AUTH_URI:http://localhost:8082}
+          predicates:
+            - Path=/oauth2/refresh
+        - id: workload
+          uri: ${WORKLOAD_URI:http://localhost:8081}
+          predicates:
+            - Path=/api/workload/**
+server:
+  port: 8080
