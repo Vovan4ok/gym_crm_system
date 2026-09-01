@@ -17,10 +17,6 @@ spring:
     user: admin
     password: admin
 
-security:
-  cors:
-    allowed-origins: "https://localhost:3000"
-
 springdoc:
   api-docs:
     path: /v3/api-docs
