@@ -61,3 +61,6 @@ eureka:
 
 messaging:
   workload-queue: gym.workload.queue
+  outbox:
+    poll-delay: 5000
+    batch-size: 100
