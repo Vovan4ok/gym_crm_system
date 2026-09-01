@@ -49,11 +49,6 @@ info:
     name: "Gym CRM System"
     version: @project.version@
 
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
-
 messaging:
   workload-queue: gym.workload.queue
   outbox:

@@ -14,21 +14,10 @@ services:
       timeout: 5s
       retries: 5
 
-  eureka-server:
-    build:
-      context: .
-      dockerfile: eureka-server/Dockerfile
-    ports:
-      - "8761:8761"
-
   auth-service:
     build:
       context: .
       dockerfile: auth-service/Dockerfile
-    environment:
-      EUREKA_URI: http://eureka-server:8761/eureka
-    depends_on:
-      - eureka-server
     ports:
       - "8082:8082"
 
@@ -38,11 +27,8 @@ services:
       dockerfile: workload-service/Dockerfile
     environment:
       AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
-      EUREKA_URI: http://eureka-server:8761/eureka
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
     depends_on:
-      eureka-server:
-        condition: service_started
       auth-service:
         condition: service_started
       activemq:
@@ -56,14 +42,11 @@ services:
       dockerfile: gym-service/Dockerfile
     environment:
       AUTH_JWKS_URI: http://auth-service:8082/oauth2/jwks
-      EUREKA_URI: http://eureka-server:8761/eureka
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gym_crm
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
     depends_on:
       postgres:
         condition: service_healthy
-      eureka-server:
-        condition: service_started
       auth-service:
         condition: service_started
       activemq:
