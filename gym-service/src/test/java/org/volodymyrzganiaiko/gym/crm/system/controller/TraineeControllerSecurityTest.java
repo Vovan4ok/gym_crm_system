@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,22 +41,22 @@ class TraineeControllerSecurityTest {
     }
 
     @Test
-    @WithMockUser(username = "Someone.Else")
     void changeStatus_otherUser_forbidden() throws Exception {
         mockMvc.perform(patch("/api/trainees/{username}/status", "Tr.Ainee")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"isActive\":false}"))
+                        .content("{\"isActive\":false}")
+                        .header("X-Auth-User", "Someone.Else"))
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(gymFacade);
     }
 
     @Test
-    @WithMockUser(username = "Tr.Ainee")
     void changeStatus_owner_ok() throws Exception {
         mockMvc.perform(patch("/api/trainees/{username}/status", "Tr.Ainee")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"isActive\":false}"))
+                        .content("{\"isActive\":false}")
+                        .header("X-Auth-User", "Tr.Ainee"))
                 .andExpect(status().isOk());
 
         verify(gymFacade).changeTraineeStatus("Tr.Ainee", false);
