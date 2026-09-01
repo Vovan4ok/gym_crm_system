@@ -15,6 +15,23 @@ maintains a per-trainer monthly workload summary.
 - `correlationId` travels as a JMS property and is restored into the MDC for
   end-to-end tracing.
 
+## Idempotency (de-duplication)
+The producer uses a transactional outbox with **at-least-once** delivery, so
+the same message can legitimately arrive more than once (the relay may publish
+a message and then fail before marking it sent). Processing a workload delta
+twice would double-count minutes, so the consumer de-duplicates:
+
+- every message carries `messageId` — the producer's outbox row id, a stable
+  key (unlike `JMSMessageID`, which the broker reassigns);
+- `ProcessMessageStore` keeps a bounded, thread-safe set of processed ids; the
+  listener skips a message whose id it has already seen;
+- an id is recorded **only after** `WorkloadService.process` succeeds — so a
+  transient failure (which triggers broker redelivery, see below) is not
+  mistaken for a duplicate and dropped.
+
+Verified end-to-end: replaying the same `messageId` logs `Duplicate ... skipping`
+and leaves the monthly total unchanged.
+
 ## Error handling and retries
 Message failures fall into two classes that are handled deliberately
 differently — retrying is only ever applied to the first:
@@ -60,3 +77,9 @@ out of scope for the current iteration.
   which instance served it. Running more than one instance safely requires
   moving the state to shared storage (a database or Redis). This is an
   accepted trade-off for the current scope.
+- **The de-duplication store is in-memory too** (a bounded LRU of ~10k ids),
+  so it shares the same limit: it de-duplicates within one instance, and a
+  very old duplicate that has fallen out of the window would be reprocessed.
+  `JMSXGroupID` pins each trainer's messages to a single consumer, which keeps
+  duplicates serialized on one instance; horizontal scaling would move both the
+  summary and the de-dup set to shared storage.
