@@ -1,6 +1,11 @@
 spring:
   application:
     name: gateway-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
   cloud:
     gateway:
       routes:
