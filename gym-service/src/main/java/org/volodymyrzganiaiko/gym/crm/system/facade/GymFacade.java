@@ -1,25 +1,30 @@
 package org.volodymyrzganiaiko.gym.crm.system.facade;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.volodymyrzganiaiko.gym.crm.system.dao.OutboxDAO;
+import org.volodymyrzganiaiko.gym.crm.system.domain.OutboxMessage;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Training;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
-import org.volodymyrzganiaiko.gym.crm.system.event.WorkloadNotificationEvent;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -33,13 +38,15 @@ public class GymFacade {
     private final UserService userService;
     private final DtoMapper mapper;
     private final GymMetrics gymMetrics;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final OutboxDAO outboxDAO;
+    private final ObjectMapper objectMapper;
+    private final String workloadQueue;
 
     private static final int MAX_REGISTRATION_ATTEMPTS = 3;
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, ApplicationEventPublisher applicationEventPublisher) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, OutboxDAO outboxDAO, ObjectMapper objectMapper, @Value("${messaging.workload-queue}") String workloadQueue) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -48,7 +55,9 @@ public class GymFacade {
         this.userService = userService;
         this.mapper = mapper;
         this.gymMetrics = gymMetrics;
-        this.applicationEventPublisher = applicationEventPublisher;
+        this.outboxDAO = outboxDAO;
+        this.objectMapper = objectMapper;
+        this.workloadQueue = workloadQueue;
     }
 
     @Transactional
@@ -92,7 +101,7 @@ public class GymFacade {
             ));
         }
         traineeService.deleteByUsername(username);
-        applicationEventPublisher.publishEvent(new WorkloadNotificationEvent(snapshot, MDC.get("correlationId")));
+        snapshot.forEach(this::enqueueWorkload);
     }
 
     @Transactional
@@ -145,16 +154,15 @@ public class GymFacade {
         gymMetrics.timeTrainingCreation(() -> holder.set(trainingService.addTraining(req.traineeUsername(), req.trainerUsername(), req.trainingName(), req.trainingDate(), req.trainingDuration())));
         Training training = holder.get();
         Trainer trainer = training.getTrainer();
-        applicationEventPublisher.publishEvent(new WorkloadNotificationEvent(
-                List.of(new TrainerWorkloadRequest(
-                        trainer.getUsername(),
-                        trainer.getFirstName(),
-                        trainer.getLastName(),
-                        trainer.getIsActive(),
-                        training.getTrainingDate(),
-                        training.getTrainingDurationInMinutes(),
-                        ActionType.ADD
-                        )), MDC.get("correlationId")));
+        enqueueWorkload(new TrainerWorkloadRequest(
+                trainer.getUsername(),
+                trainer.getFirstName(),
+                trainer.getLastName(),
+                trainer.getIsActive(),
+                training.getTrainingDate(),
+                training.getTrainingDurationInMinutes(),
+                ActionType.ADD
+        ));
     }
 
     @Transactional
@@ -167,9 +175,7 @@ public class GymFacade {
                 training.getTrainingDate(), training.getTrainingDurationInMinutes(), ActionType.DELETE);
 
         trainingService.deleteTraining(id);
-        applicationEventPublisher.publishEvent(
-                new WorkloadNotificationEvent(List.of(req), MDC.get("correlationId"))
-        );
+        enqueueWorkload(req);
     }
 
     @Transactional(readOnly = true)
@@ -200,5 +206,24 @@ public class GymFacade {
             }
         }
         throw new IllegalStateException("Unreachable");
+    }
+
+    private void enqueueWorkload(TrainerWorkloadRequest req) {
+        try {
+            OutboxMessage m = new OutboxMessage(
+                    UUID.randomUUID(),
+                    workloadQueue,
+                    objectMapper.writeValueAsString(req),
+                    MDC.get("correlationId"),
+                    req.trainerUsername(),
+                    "PENDING",
+                    0,
+                    LocalDateTime.now(),
+                    null
+            );
+            outboxDAO.save(m);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize workload payload", e);
+        }
     }
 }

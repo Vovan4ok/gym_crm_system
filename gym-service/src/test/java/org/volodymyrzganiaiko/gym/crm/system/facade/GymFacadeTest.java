@@ -1,16 +1,17 @@
 package org.volodymyrzganiaiko.gym.crm.system.facade;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.volodymyrzganiaiko.gym.crm.system.dao.OutboxDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
-import org.volodymyrzganiaiko.gym.crm.system.event.WorkloadNotificationEvent;
 import org.volodymyrzganiaiko.gym.crm.system.mapper.DtoMapper;
 import org.volodymyrzganiaiko.gym.crm.system.metrics.GymMetrics;
 import org.volodymyrzganiaiko.gym.crm.system.service.*;
@@ -52,10 +53,20 @@ class GymFacadeTest {
     private GymMetrics gymMetrics;
 
     @Mock
-    private ApplicationEventPublisher applicationEventPublisher;
+    private OutboxDAO outboxDAO;
 
-    @InjectMocks
+    private final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
+
     GymFacade gymFacade;
+
+    @BeforeEach
+    void setUp() {
+        gymFacade = new GymFacade(
+                traineeService, trainerService, trainingService, trainingTypeService,
+                credentialsService, userService, dtoMapper, gymMetrics,
+                outboxDAO, objectMapper, "queue");
+    }
 
     @Test
     void createTrainee() {
@@ -103,8 +114,7 @@ class GymFacadeTest {
         gymFacade.deleteTraineeProfile(input);
 
         verify(traineeService).deleteByUsername(input);
-        verify(applicationEventPublisher).publishEvent(
-                argThat((WorkloadNotificationEvent e) -> e.requests().isEmpty()));
+        verify(outboxDAO, never()).save(any());
     }
 
     @Test
@@ -129,15 +139,13 @@ class GymFacadeTest {
         gymFacade.deleteTraineeProfile("Tra.Inee");
 
         verify(traineeService).deleteByUsername("Tra.Inee");
-        ArgumentCaptor<WorkloadNotificationEvent> captor =
-                ArgumentCaptor.forClass(WorkloadNotificationEvent.class);
-        verify(applicationEventPublisher).publishEvent(captor.capture());
+        ArgumentCaptor<OutboxMessage> captor = ArgumentCaptor.forClass(OutboxMessage.class);
+        verify(outboxDAO, times(2)).save(captor.capture());
 
-        List<TrainerWorkloadRequest> sent = captor.getValue().requests();
-        assertEquals(2, sent.size());
-        assertTrue(sent.stream().allMatch(r -> r.actionType() == ActionType.DELETE));
-        assertTrue(sent.stream().anyMatch(r -> r.trainerUsername().equals("Tra.Iner")));
-        assertTrue(sent.stream().anyMatch(r -> r.trainerUsername().equals("Tra.Iner.1")));
+        List<OutboxMessage> sent = captor.getAllValues();
+        assertTrue(sent.stream().allMatch(m -> actionOf(m) == ActionType.DELETE));
+        assertTrue(sent.stream().anyMatch(m -> "Tra.Iner".equals(m.getGroupId())));
+        assertTrue(sent.stream().anyMatch(m -> "Tra.Iner.1".equals(m.getGroupId())));
     }
 
     @Test
@@ -377,10 +385,13 @@ class GymFacadeTest {
 
         gymFacade.createTraining(req);
 
-        verify(applicationEventPublisher).publishEvent(argThat((WorkloadNotificationEvent e) ->
-                e.requests().size() == 1
-                        && e.requests().get(0).actionType() == ActionType.ADD
-                        && e.requests().get(0).trainerUsername().equals("Tra.Iner")));
+        verify(outboxDAO, times(1)).save(
+                argThat(m ->
+                        "PENDING".equals(m.getStatus())
+                        && "queue".equals(m.getDestination())
+                        && "Tra.Iner".equals(m.getGroupId())
+                        && ActionType.ADD == actionOf(m))
+        );
         verify(trainingService).addTraining("Tr.Ainee", "Tra.Iner", "Cardio", LocalDate.parse("2026-07-10"), 60);
     }
 
@@ -484,16 +495,23 @@ class GymFacadeTest {
         gymFacade.deleteTraining(1L);
 
         verify(trainingService).deleteTraining(1L);
-        verify(applicationEventPublisher).publishEvent(argThat((WorkloadNotificationEvent e) ->
-                e.requests().size() == 1
-                        && e.requests().get(0).actionType() == ActionType.DELETE
-                        && e.requests().get(0).trainerUsername().equals("Tra.Iner")));    }
+        verify(outboxDAO, times(1)).save(argThat(m ->
+                "Tra.Iner".equals(m.getGroupId()) && actionOf(m) == ActionType.DELETE));
+    }
 
     @Test
     public void deleteTraining_notFound() {
         when(trainingService.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> gymFacade.deleteTraining(1L));
-        verifyNoInteractions(applicationEventPublisher);
+        verifyNoInteractions(outboxDAO);
+    }
+
+    private ActionType actionOf(OutboxMessage m) {
+        try {
+            return objectMapper.readValue(m.getPayload(), TrainerWorkloadRequest.class).actionType();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
