@@ -23,19 +23,22 @@ public class WorkloadMessageListener {
     private final JmsTemplate jmsTemplate;
     private final Validator validator;
     private final String dlqQueue;
+    private final ProcessMessageStore processMessageStore;
 
     public WorkloadMessageListener(WorkloadService workloadService, JmsTemplate jmsTemplate,
-                                   Validator validator, @Value("${messaging.workload-dlq}") String dlqQueue) {
+                                   Validator validator, @Value("${messaging.workload-dlq}") String dlqQueue, ProcessMessageStore processMessageStore) {
         this.workloadService = workloadService;
         this.jmsTemplate = jmsTemplate;
         this.validator = validator;
         this.dlqQueue = dlqQueue;
+        this.processMessageStore = processMessageStore;
     }
 
     @JmsListener(destination = "${messaging.workload-queue}",
     concurrency = "${messaging.workload-concurrency}")
     public void onWorkload(@Payload TrainerWorkloadRequest request,
-                           @Header(name = "correlationId", required = false) String correlationId) {
+                           @Header(name = "correlationId", required = false) String correlationId,
+                           @Header(name = "messageId", required = false) String messageId) {
         MDC.put("correlationId", correlationId);
         try {
             Set<ConstraintViolation<TrainerWorkloadRequest>> violations = validator.validate(request);
@@ -51,9 +54,16 @@ public class WorkloadMessageListener {
                 });
                 return;
             }
+            if (messageId != null && processMessageStore.isProcessed(messageId)) {
+                log.info("Duplicate workload message {}, skipping", messageId);
+                return;
+            }
             log.info("Received workload message: trainer={}, action={}, minutes={}",
                     request.trainerUsername(), request.actionType(), request.trainingDuration());
             workloadService.process(request);
+            if (messageId != null) {
+                processMessageStore.markProcessed(messageId);
+            }
         } finally {
             MDC.clear();
         }

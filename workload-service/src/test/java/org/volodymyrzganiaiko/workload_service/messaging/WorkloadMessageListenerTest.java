@@ -15,10 +15,10 @@ import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
 
 import java.time.LocalDate;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class WorkloadMessageListenerTest {
@@ -31,7 +31,7 @@ class WorkloadMessageListenerTest {
     @BeforeEach
     public void setUp() {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-        listener = new WorkloadMessageListener(workloadService, jmsTemplate, validator, "gym.workload.dlq");
+        listener = new WorkloadMessageListener(workloadService, jmsTemplate, validator, "gym.workload.dlq", new ProcessMessageStore());
     }
 
     @Test
@@ -39,7 +39,7 @@ class WorkloadMessageListenerTest {
         var req = new TrainerWorkloadRequest("Tra.Iner", "Tra", "Iner", true,
                 LocalDate.parse("2026-08-01"), 60, ActionType.ADD);
 
-        listener.onWorkload(req, "tx-1");
+        listener.onWorkload(req, "tx-1", "m-1");
 
         verify(workloadService).process(req);
         verifyNoInteractions(jmsTemplate);
@@ -50,9 +50,49 @@ class WorkloadMessageListenerTest {
         var bad = new TrainerWorkloadRequest("  ", "Tra", "Iner", true,
                 LocalDate.parse("2026-08-01"), 60, ActionType.ADD); // blank username
 
-        listener.onWorkload(bad, "tx-1");
+        listener.onWorkload(bad, "tx-1", "m-1");
 
         verify(jmsTemplate).convertAndSend(eq("gym.workload.dlq"), eq(bad), any(MessagePostProcessor.class));
         verifyNoInteractions(workloadService);
+    }
+
+    @Test
+    public void duplicateMessageId_processedOnce() {
+        var req = validReq();
+        listener.onWorkload(req, "tx-1", "m-1");
+        listener.onWorkload(req, "tx-1", "m-1");
+        verify(workloadService, times(1)).process(req);
+    }
+
+    @Test
+    public void distinctMessageIds_processedEach() {
+        var req = validReq();
+        listener.onWorkload(req, "tx-1", "m-1");
+        listener.onWorkload(req, "tx-1", "m-2");
+        verify(workloadService, times(2)).process(req);
+    }
+
+    @Test
+    public void nullMessageId_alwaysProcessed() {
+        var req = validReq();
+        listener.onWorkload(req, "tx-1", null);
+        listener.onWorkload(req, "tx-1", null);
+        verify(workloadService, times(2)).process(req);
+    }
+
+    @Test
+    public void processFailure_doesNotBurnId_reprocessable() {
+        var req = validReq();
+        doThrow(new RuntimeException("boom")).doNothing().when(workloadService).process(req);
+
+        assertThrows(RuntimeException.class, () -> listener.onWorkload(req, "tx-1", "m-1"));
+        listener.onWorkload(req, "tx-1", "m-1");
+
+        verify(workloadService, times(2)).process(req);
+    }
+
+    private TrainerWorkloadRequest validReq() {
+        return new TrainerWorkloadRequest("Tra.Iner", "Tra", "Iner", true,
+                LocalDate.parse("2026-08-01"), 60, ActionType.ADD);
     }
 }
