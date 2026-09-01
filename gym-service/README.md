@@ -45,6 +45,16 @@ messaging:
     batch-size: 100    # rows per tick
 ```
 
+## Authentication
+gym-service sits behind the API gateway and does **not** validate JWTs or fetch
+JWKS. The gateway authenticates the request and forwards the username in a
+trusted `X-Auth-User` header; a servlet filter turns it into the
+`SecurityContext`, so `@PreAuthorize("#username == authentication.name")`
+ownership checks keep working. This trust is safe only because gym-service is
+not published to the host — it is reachable only through the gateway. The
+`/internal/auth` credential-verification endpoint (called by auth-service) is
+unrelated and stays.
+
 ## Correlation id
 An inbound `X-Correlation-Id` header is honoured (a full UUID is generated when
 absent), echoed on the response, carried across the outbox row and the JMS

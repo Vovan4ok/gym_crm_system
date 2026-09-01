@@ -32,6 +32,14 @@ twice would double-count minutes, so the consumer de-duplicates:
 Verified end-to-end: replaying the same `messageId` logs `Duplicate ... skipping`
 and leaves the monthly total unchanged.
 
+## Authentication
+workload-service sits behind the API gateway and does **not** validate JWTs.
+The gateway authenticates the request and forwards a trusted `X-Auth-User`
+header, which a servlet filter turns into the `SecurityContext`; a request
+without it gets 401. There are no ownership checks here — the header only marks
+the request as authenticated. This trust is safe because workload-service is
+not published to the host and is reachable only through the gateway.
+
 ## Error handling and retries
 Message failures fall into two classes that are handled deliberately
 differently — retrying is only ever applied to the first:
