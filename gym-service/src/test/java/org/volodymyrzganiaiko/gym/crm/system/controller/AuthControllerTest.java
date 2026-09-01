@@ -14,7 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -61,14 +60,13 @@ public class AuthControllerTest {
 
     @Test
     public void changePassword_success() throws Exception {
-        authenticateAs();
-
         ChangePasswordRequest request = new ChangePasswordRequest("newPass");
         String json = objectMapper.writeValueAsString(request);
 
         mockMvc.perform(put("/api/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json)
+                        .principal(new UsernamePasswordAuthenticationToken("John.Doe", null, List.of())))
         .andExpect(status().isOk());
 
         verify(gymFacade).changeLogin("John.Doe", "newPass");
@@ -81,16 +79,11 @@ public class AuthControllerTest {
 
         mockMvc.perform(put("/api/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
+                        .content(json)
+                        .principal(new UsernamePasswordAuthenticationToken("John.Doe", null, List.of())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("newPassword")));
 
         verifyNoInteractions(gymFacade);
-    }
-
-    private void authenticateAs() {
-        Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject("John.Doe").build();
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(jwt, null, List.of()));
     }
 }

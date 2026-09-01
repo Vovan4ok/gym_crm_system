@@ -24,10 +24,10 @@
     </properties>
 
     <modules>
-        <module>eureka-server</module>
         <module>auth-service</module>
         <module>gym-service</module>
         <module>workload-service</module>
+        <module>gateway-service</module>
     </modules>
 
     <dependencyManagement>

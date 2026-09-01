@@ -5,8 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ChangePasswordRequest;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
@@ -29,8 +28,8 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "The new password is missing or does not satisfy the constraints"),
             @ApiResponse(responseCode = "401", description = "Wrong username or password")
     })
-    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        gymFacade.changeLogin(jwt.getSubject(), changePasswordRequest.newPassword());
+    public ResponseEntity<Void> changePassword(Authentication authentication, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        gymFacade.changeLogin(authentication.getName(), changePasswordRequest.newPassword());
         return ResponseEntity.ok().build();
     }
 }

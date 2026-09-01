@@ -6,19 +6,9 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   application:
     name: workload-service
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
   activemq:
     user: admin
     password: admin
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
 
 management:
   endpoints:

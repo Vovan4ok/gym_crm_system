@@ -13,18 +13,9 @@ spring:
     locale-resolver: fixed
   profiles:
     active: local
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8082/oauth2/jwks}
   activemq:
     user: admin
     password: admin
-
-security:
-  cors:
-    allowed-origins: "https://localhost:3000"
 
 springdoc:
   api-docs:
@@ -53,11 +44,6 @@ info:
   app:
     name: "Gym CRM System"
     version: @project.version@
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
 
 messaging:
   workload-queue: gym.workload.queue
