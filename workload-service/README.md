@@ -15,6 +15,14 @@ maintains a per-trainer monthly workload summary.
 - `correlationId` travels as a JMS property and is restored into the MDC for
   end-to-end tracing.
 
+## Persistence (MongoDB)
+The per-trainer summary is stored as a MongoDB document (`trainer_workloads`),
+keyed by username, with the year/month breakdown as nested lists and a compound
+index on first + last name. `TrainerWorkloadRepository` (Spring Data Mongo)
+exposes `findByUsername`; `WorkloadService` reads the document, adds/subtracts
+the training duration for the right year/month, and saves it back. Index
+creation is enabled via `spring.data.mongodb.auto-index-creation: true`.
+
 ## Idempotency (de-duplication)
 The producer uses a transactional outbox with **at-least-once** delivery, so
 the same message can legitimately arrive more than once (the relay may publish
@@ -23,8 +31,9 @@ twice would double-count minutes, so the consumer de-duplicates:
 
 - every message carries `messageId` — the producer's outbox row id, a stable
   key (unlike `JMSMessageID`, which the broker reassigns);
-- `ProcessMessageStore` keeps a bounded, thread-safe set of processed ids; the
-  listener skips a message whose id it has already seen;
+- `ProcessMessageStore` records each processed id in a MongoDB
+  `processed_messages` collection (a 24h TTL index expires old entries);
+  the listener skips a message whose id it has already seen;
 - an id is recorded **only after** `WorkloadService.process` succeeds — so a
   transient failure (which triggers broker redelivery, see below) is not
   mistaken for a duplicate and dropped.
@@ -77,17 +86,10 @@ out of scope for the current iteration.
   parallel. The producer stamps `JMSXGroupID = trainerUsername` (ActiveMQ
   message groups), pinning all of a trainer's messages to the same consumer
   in order — parallelism across trainers, ordering within a trainer.
-- **Known limitation — in-memory state.** The summary lives in an in-process
-  `ConcurrentHashMap`. The service therefore scales **vertically** (more
-  consumer threads per instance) but **not horizontally** across instances:
-  two instances would each hold a partial, divergent view, and
-  `GET /api/workload/{username}` would answer inconsistently depending on
-  which instance served it. Running more than one instance safely requires
-  moving the state to shared storage (a database or Redis). This is an
-  accepted trade-off for the current scope.
-- **The de-duplication store is in-memory too** (a bounded LRU of ~10k ids),
-  so it shares the same limit: it de-duplicates within one instance, and a
-  very old duplicate that has fallen out of the window would be reprocessed.
-  `JMSXGroupID` pins each trainer's messages to a single consumer, which keeps
-  duplicates serialized on one instance; horizontal scaling would move both the
-  summary and the de-dup set to shared storage.
+- **Shared state in MongoDB.** Both the per-trainer summary
+  (`trainer_workloads`) and the de-duplication set (`processed_messages`) live
+  in MongoDB, not in process memory. The service therefore scales
+  **horizontally**: several instances share one consistent view, and
+  `GET /api/workload/{username}` answers the same regardless of which instance
+  serves it. `JMSXGroupID` still pins each trainer's messages to a single
+  consumer for in-order processing.
