@@ -29,10 +29,13 @@ services:
       dockerfile: workload-service/Dockerfile
     environment:
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      MONGODB_URI: mongodb://mongodb:27017/workload
     depends_on:
       auth-service:
         condition: service_started
       activemq:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
 
   gym-service:
@@ -78,5 +81,17 @@ services:
       - auth-service
     ports:
       - "8080:8080"
+  mongodb:
+    image: mongo:7
+    volumes:
+      - gym_crm_mongodata:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   gym_crm_pgdata:
+  gym_crm_mongodata:
