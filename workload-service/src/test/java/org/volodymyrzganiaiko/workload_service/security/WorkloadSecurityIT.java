@@ -6,6 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.volodymyrzganiaiko.workload_service.AbstractMongoIT;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerSummaryResponse;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
 
@@ -19,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class WorkloadSecurityTest {
+public class WorkloadSecurityIT extends AbstractMongoIT {
     @Autowired
     private MockMvc mockMvc;
 

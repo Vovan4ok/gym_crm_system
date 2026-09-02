@@ -5,7 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.volodymyrzganiaiko.workload_service.AbstractMongoIT;
+import org.volodymyrzganiaiko.workload_service.domain.ProcessedMessage;
 import org.volodymyrzganiaiko.workload_service.domain.TrainerWorkload;
 
 import java.time.Month;
@@ -20,6 +23,9 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
     @Autowired
     private TrainerWorkloadRepository repository;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
     @BeforeEach
     void clean() { repository.deleteAll(); }
 
@@ -30,7 +36,7 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
     }
 
     @Test
-    void saveAndFindByUsername() {
+    public void saveAndFindByUsername() {
         repository.save(sample());
 
         TrainerWorkload found = repository.findByUsername("Tra.Iner").orElseThrow();
@@ -42,7 +48,7 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
     }
 
     @Test
-    void updateSummaryDuration() {
+    public void updateSummaryDuration() {
         repository.save(sample());
         TrainerWorkload w = repository.findByUsername("Tra.Iner").orElseThrow();
         w.getYears().get(0).getMonths().get(0).setSummaryDuration(90);
@@ -53,7 +59,21 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
     }
 
     @Test
-    void findByUsername_missing_empty() {
+    public void findByUsername_missing_empty() {
         assertTrue(repository.findByUsername("nobody").isEmpty());
+    }
+
+    @Test
+    public void compoundNameIndexExists() {
+        List<IndexInfo> indexes = mongoTemplate.indexOps(TrainerWorkload.class).getIndexInfo();
+        boolean hasNameIndex = indexes.stream().anyMatch(i -> "idx_name".equals(i.getName()));
+        assertTrue(hasNameIndex, "compound firstName+lastName index must exist");
+    }
+
+    @Test
+    void processedMessageHasTtlIndex() {
+        boolean hasTtl = mongoTemplate.indexOps(ProcessedMessage.class).getIndexInfo().stream()
+                .anyMatch(i -> i.getExpireAfter().isPresent());
+        assertTrue(hasTtl, "processed_messages must have a TTL index");
     }
 }

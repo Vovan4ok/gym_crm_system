@@ -19,6 +19,6 @@ public class ProcessedMessage {
     @Id
     private String messageId;
 
-    @Indexed(expireAfter = "86400")
+    @Indexed(expireAfter = "86400s")
     private Instant processedAt;
 }
