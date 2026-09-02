@@ -9,6 +9,9 @@ spring:
   activemq:
     user: admin
     password: admin
+  data:
+    mongodb:
+      auto-index-creation: true
 
 management:
   endpoints:

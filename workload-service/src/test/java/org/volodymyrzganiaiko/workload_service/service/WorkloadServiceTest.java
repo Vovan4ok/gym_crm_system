@@ -1,205 +1,101 @@
 package org.volodymyrzganiaiko.workload_service.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.volodymyrzganiaiko.workload_service.domain.TrainerWorkload;
 import org.volodymyrzganiaiko.workload_service.dto.ActionType;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerSummaryResponse;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerWorkloadRequest;
+import org.volodymyrzganiaiko.workload_service.repository.TrainerWorkloadRepository;
 
 import java.time.LocalDate;
+import java.time.Month;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class WorkloadServiceTest {
+    @Mock
+    private TrainerWorkloadRepository repository;
+
+    @InjectMocks
     private WorkloadService workloadService;
 
-    @BeforeEach
-    public void setUp() {
-        this.workloadService = new WorkloadService();
+    private TrainerWorkloadRequest req(int minutes, ActionType action) {
+        return new TrainerWorkloadRequest("Tra.Iner", "Tra", "Iner", true,
+                LocalDate.of(2026, 7, 10), minutes, action);
+    }
+
+    private TrainerWorkload existing(int minutes) {
+        return new TrainerWorkload("Tra.Iner", "Tra", "Iner", true,
+                new ArrayList<>(List.of(new TrainerWorkload.YearSummary(2026,
+                        new ArrayList<>(List.of(new TrainerWorkload.MonthSummary(Month.JULY, minutes)))))));
     }
 
     @Test
-    public void process_add_accumulates() {
-        for (int i = 0; i < 2; i++) {
-            workloadService.process(new TrainerWorkloadRequest(
-                    "Tra.Iner",
-                    "Tra",
-                    "Iner",
-                    true,
-                    LocalDate.parse("2026-08-19"),
-                    60,
-                    ActionType.ADD
-            ));
-        }
+    public void add_noDocument_creates() {
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.empty());
 
-        TrainerSummaryResponse result = workloadService.getWorkload("Tra.Iner");
+        workloadService.process(req(60, ActionType.ADD));
 
-        assertEquals(2026, result.years().get(0).year());
-        assertEquals(1, result.years().get(0).months().size());
-        assertEquals(120, result.years().get(0).months().get(0).summaryDuration());
+        verify(repository).save(argThat(w ->
+                w.getUsername().equals("Tra.Iner")
+                && w.getYears().get(0).getYear() == 2026
+                && w.getYears().get(0).getMonths().get(0).getMonth() == Month.JULY
+                && w.getYears().get(0).getMonths().get(0).getSummaryDuration() == 60));
     }
 
     @Test
-    public void process_add_differentMonths() {
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                60,
-                ActionType.ADD
-        ));
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-09-19"),
-                60,
-                ActionType.ADD
-        ));
+    void add_existing_accumulates() {
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.of(existing(60)));
 
-        TrainerSummaryResponse result = workloadService.getWorkload("Tra.Iner");
+        workloadService.process(req(30, ActionType.ADD));
 
-        assertEquals(2, result.years().get(0).months().size());
+        verify(repository).save(argThat(w ->
+                w.getYears().get(0).getMonths().get(0).getSummaryDuration() == 90));
     }
 
     @Test
-    public void process_delete_subtracts() {
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                60,
-                ActionType.ADD
-        ));
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                20,
-                ActionType.DELETE
-        ));
+    void delete_toZero_removesMonthAndYear() {
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.of(existing(30)));
 
-        TrainerSummaryResponse result = workloadService.getWorkload("Tra.Iner");
+        workloadService.process(req(30, ActionType.DELETE));
 
-        assertEquals(40, result.years().get(0).months().get(0).summaryDuration());
+        verify(repository).save(argThat(w -> w.getYears().isEmpty()));
     }
 
     @Test
-    public void process_delete_overRemovesMonth() {
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                60,
-                ActionType.ADD
-        ));
+    void delete_unknown_noSave() {
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.empty());
 
-        TrainerSummaryResponse result = workloadService.getWorkload("Tra.Iner");
+        workloadService.process(req(30, ActionType.DELETE));
 
-        assertEquals(1, result.years().get(0).months().size());
-        assertEquals(60, result.years().get(0).months().get(0).summaryDuration());
-
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                80,
-                ActionType.DELETE
-        ));
-
-        result = workloadService.getWorkload("Tra.Iner");
-
-        assertEquals(0, result.years().get(0).months().size());
+        verify(repository, never()).save(any());
     }
 
     @Test
-    public void process_delete_missingTrainer_noop() {
-        assertDoesNotThrow(() -> workloadService.process(
-                new TrainerWorkloadRequest(
-                        "Tra.Iner",
-                        "Tra",
-                        "Iner",
-                        true,
-                        LocalDate.parse("2026-08-19"),
-                        80,
-                        ActionType.DELETE
-                )
-        ));
+    void getWorkload_found_maps() {
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.of(existing(60)));
+        TrainerSummaryResponse r = workloadService.getWorkload("Tra.Iner");
+        assertEquals("Tra.Iner", r.username());
+        assertTrue(r.active());
+        assertEquals(2026, r.years().get(0).year());
+        assertEquals(Month.JULY, r.years().get(0).months().get(0).month());
+        assertEquals(60, r.years().get(0).months().get(0).summaryDuration());
     }
 
     @Test
-    public void process_add_updatesIdentity() {
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                60,
-                ActionType.ADD
-        ));
-
-        TrainerSummaryResponse result = workloadService.getWorkload("Tra.Iner");
-
-        assertTrue(result.active());
-
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                false,
-                LocalDate.parse("2026-08-19"),
-                60,
-                ActionType.ADD
-        ));
-
-        result = workloadService.getWorkload("Tra.Iner");
-
-        assertFalse(result.active());
-    }
-
-    @Test
-    public void getWorkload_returnsNestedSummary() {
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2026-08-19"),
-                60,
-                ActionType.ADD
-        ));
-        workloadService.process(new TrainerWorkloadRequest(
-                "Tra.Iner",
-                "Tra",
-                "Iner",
-                true,
-                LocalDate.parse("2027-09-19"),
-                60,
-                ActionType.ADD
-        ));
-
-        TrainerSummaryResponse result = workloadService.getWorkload("Tra.Iner");
-
-        assertEquals(2, result.years().size());
-        assertEquals(1, result.years().get(0).months().size());
-        assertEquals(1, result.years().get(1).months().size());
-    }
-
-    @Test
-    public void getWorkload_notFound() {
-        assertThrows(NoSuchElementException.class, () -> workloadService.getWorkload("Ghost"));
+    void getWorkload_notFound_throws() {
+        when(repository.findByUsername("x")).thenReturn(Optional.empty());
+        assertThrows(NoSuchElementException.class, () -> workloadService.getWorkload("x"));
     }
 }
