@@ -26,12 +26,15 @@ class WorkloadMessageListenerTest {
     WorkloadService workloadService;
     @Mock
     JmsTemplate jmsTemplate;
+    @Mock
+    ProcessMessageStore processMessageStore;
+
     WorkloadMessageListener listener;
 
     @BeforeEach
     public void setUp() {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-        listener = new WorkloadMessageListener(workloadService, jmsTemplate, validator, "gym.workload.dlq", new ProcessMessageStore());
+        listener = new WorkloadMessageListener(workloadService, jmsTemplate, validator, "gym.workload.dlq", processMessageStore);
     }
 
     @Test
@@ -58,6 +61,7 @@ class WorkloadMessageListenerTest {
 
     @Test
     public void duplicateMessageId_processedOnce() {
+        when(processMessageStore.isProcessed("m-1")).thenReturn(false, true);
         var req = validReq();
         listener.onWorkload(req, "tx-1", "m-1");
         listener.onWorkload(req, "tx-1", "m-1");
