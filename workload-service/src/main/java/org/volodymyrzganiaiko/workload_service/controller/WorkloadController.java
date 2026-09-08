@@ -28,6 +28,6 @@ public class WorkloadController {
             @ApiResponse(responseCode = "404", description = "The trainer was not found")
     })
     public ResponseEntity<TrainerSummaryResponse> getWorkloadSummary(@PathVariable String username) {
-        return ResponseEntity.ok(workloadService.getWorkload(username));
+        return ResponseEntity.ok(workloadService.getWorkload(username).block());
     }
 }

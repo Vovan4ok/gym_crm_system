@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerSummaryResponse;
 import org.volodymyrzganiaiko.workload_service.handler.GlobalExceptionHandler;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -45,13 +46,13 @@ public class WorkloadControllerTest {
 
     @Test
     public void getWorkload_success() throws Exception {
-        when(workloadService.getWorkload("x")).thenReturn(new TrainerSummaryResponse(
+        when(workloadService.getWorkload("x")).thenReturn(Mono.just(new TrainerSummaryResponse(
                 "Tra.Iner",
                 "Tra",
                 "Iner",
                 true,
                 List.of()
-        ));
+        )));
 
         mockMvc.perform(get("/api/workload/x"))
                 .andExpect(status().isOk())
@@ -63,7 +64,7 @@ public class WorkloadControllerTest {
 
     @Test
     public void getWorkload_notFound() throws Exception {
-        when(workloadService.getWorkload("Ghost")).thenThrow(new NoSuchElementException("Not found"));
+        when(workloadService.getWorkload("Ghost")).thenReturn(Mono.error(new NoSuchElementException("Not found")));
 
         mockMvc.perform(get("/api/workload/Ghost"))
                 .andExpect(status().isNotFound());
@@ -71,7 +72,7 @@ public class WorkloadControllerTest {
 
     @Test
     public void getWorkload_unexpectedError_returns500() throws Exception {
-        when(workloadService.getWorkload("x")).thenThrow(new RuntimeException("boom"));
+        when(workloadService.getWorkload("x")).thenReturn(Mono.error(new RuntimeException("boom")));
         mockMvc.perform(get("/api/workload/x"))
                 .andExpect(status().isInternalServerError());
     }

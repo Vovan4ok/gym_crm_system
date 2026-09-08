@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.volodymyrzganiaiko.workload_service.AbstractMongoIT;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerSummaryResponse;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -30,7 +31,7 @@ public class WorkloadSecurityIT extends AbstractMongoIT {
     @Test
     void validAuthHeader_ok() throws Exception {
         when(workloadService.getWorkload("x"))
-                .thenReturn(new TrainerSummaryResponse("x", "Tra", "Iner", true, List.of()));
+                .thenReturn(Mono.just(new TrainerSummaryResponse("x", "Tra", "Iner", true, List.of())));
 
         mockMvc.perform(get("/api/workload/x")
                         .header("X-Auth-User", "x"))
