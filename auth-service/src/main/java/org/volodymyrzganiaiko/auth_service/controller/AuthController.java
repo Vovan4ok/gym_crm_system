@@ -1,6 +1,5 @@
 package org.volodymyrzganiaiko.auth_service.controller;
 
-import feign.FeignException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -8,14 +7,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.volodymyrzganiaiko.auth_service.client.GymAuthClient;
 import org.volodymyrzganiaiko.auth_service.dto.LoginRequest;
 import org.volodymyrzganiaiko.auth_service.dto.LoginResponse;
 import org.volodymyrzganiaiko.auth_service.exception.UserBlockedException;
+import org.volodymyrzganiaiko.auth_service.security.service.CredentialVerificationService;
 import org.volodymyrzganiaiko.auth_service.service.BruteForceProtectionService;
 import org.volodymyrzganiaiko.auth_service.service.RefreshTokenService;
 import org.volodymyrzganiaiko.auth_service.service.TokenService;
@@ -24,16 +24,16 @@ import org.volodymyrzganiaiko.auth_service.service.TokenService;
 @RequestMapping("/api/login")
 @Tag(name = "User authentication")
 public class AuthController {
-    private final GymAuthClient gymAuthClient;
     private final TokenService tokenService;
     private final BruteForceProtectionService bruteForceProtectionService;
     private final RefreshTokenService refreshTokenService;
+    private final CredentialVerificationService credentialVerificationService;
 
-    public AuthController(GymAuthClient gymAuthClient, TokenService tokenService, BruteForceProtectionService bruteForceProtectionService, RefreshTokenService refreshTokenService) {
-        this.gymAuthClient = gymAuthClient;
+    public AuthController(TokenService tokenService, BruteForceProtectionService bruteForceProtectionService, RefreshTokenService refreshTokenService, CredentialVerificationService credentialVerificationService) {
         this.tokenService = tokenService;
         this.bruteForceProtectionService = bruteForceProtectionService;
         this.refreshTokenService = refreshTokenService;
+        this.credentialVerificationService = credentialVerificationService;
     }
 
     @PostMapping
@@ -49,8 +49,8 @@ public class AuthController {
             throw new UserBlockedException("Too many failed login attempts");
         }
         try {
-            gymAuthClient.verify(loginRequest);
-        } catch (FeignException.Unauthorized e) {
+            credentialVerificationService.verify(loginRequest.username(), loginRequest.password());
+        } catch (BadCredentialsException e) {
             bruteForceProtectionService.loginFailed(loginRequest.username());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

@@ -1,9 +1,6 @@
 package org.volodymyrzganiaiko.auth_service.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.FeignException;
-import feign.Request;
-import feign.RequestTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,18 +8,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.volodymyrzganiaiko.auth_service.client.GymAuthClient;
 import org.volodymyrzganiaiko.auth_service.dto.LoginRequest;
 import org.volodymyrzganiaiko.auth_service.handler.GlobalExceptionHandler;
+import org.volodymyrzganiaiko.auth_service.security.service.CredentialVerificationService;
 import org.volodymyrzganiaiko.auth_service.service.BruteForceProtectionService;
 import org.volodymyrzganiaiko.auth_service.service.RefreshTokenService;
 import org.volodymyrzganiaiko.auth_service.service.TokenService;
 
-import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
     @Mock
-    private GymAuthClient gymAuthClient;
+    private CredentialVerificationService credentialVerificationService;
     @Mock
     private TokenService tokenService;
     @Mock
@@ -55,12 +51,6 @@ class AuthControllerTest {
         return objectMapper.writeValueAsString(new LoginRequest("John.Doe", "rawPass"));
     }
 
-    private FeignException.Unauthorized unauthorized() {
-        Request request = Request.create(Request.HttpMethod.POST, "/internal/auth/verify",
-                Map.of(), null, new RequestTemplate());
-        return new FeignException.Unauthorized("Unauthorized", request, null, null);
-    }
-
     @Test
     void login_success() throws Exception {
         when(tokenService.generateToken("John.Doe")).thenReturn("test.token");
@@ -78,7 +68,7 @@ class AuthControllerTest {
 
     @Test
     void login_invalidCredentials_401() throws Exception {
-        doThrow(unauthorized()).when(gymAuthClient).verify(any());
+        doThrow(new BadCredentialsException("x")).when(credentialVerificationService).verify(anyString(), anyString());
 
         mockMvc.perform(post("/api/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -98,7 +88,5 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json()))
                 .andExpect(status().isTooManyRequests());
-
-        verifyNoInteractions(gymAuthClient);
     }
 }
