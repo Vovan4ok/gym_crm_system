@@ -12,6 +12,7 @@ import org.springframework.jms.core.MessagePostProcessor;
 import org.volodymyrzganiaiko.workload_service.dto.ActionType;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerWorkloadRequest;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 
@@ -35,6 +36,9 @@ class WorkloadMessageListenerTest {
     public void setUp() {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
         listener = new WorkloadMessageListener(workloadService, jmsTemplate, validator, "gym.workload.dlq", processMessageStore);
+        lenient().when(workloadService.process(any())).thenReturn(Mono.empty());
+        lenient().when(processMessageStore.isProcessed(any())).thenReturn(Mono.just(false));
+        lenient().when(processMessageStore.markProcessed(any())).thenReturn(Mono.empty());
     }
 
     @Test
@@ -51,7 +55,7 @@ class WorkloadMessageListenerTest {
     @Test
     void invalidMessage_goesToDlq() {
         var bad = new TrainerWorkloadRequest("  ", "Tra", "Iner", true,
-                LocalDate.parse("2026-08-01"), 60, ActionType.ADD); // blank username
+                LocalDate.parse("2026-08-01"), 60, ActionType.ADD);
 
         listener.onWorkload(bad, "tx-1", "m-1");
 
@@ -61,7 +65,7 @@ class WorkloadMessageListenerTest {
 
     @Test
     public void duplicateMessageId_processedOnce() {
-        when(processMessageStore.isProcessed("m-1")).thenReturn(false, true);
+        when(processMessageStore.isProcessed("m-1")).thenReturn(Mono.just(false), Mono.just(true));
         var req = validReq();
         listener.onWorkload(req, "tx-1", "m-1");
         listener.onWorkload(req, "tx-1", "m-1");
@@ -87,11 +91,9 @@ class WorkloadMessageListenerTest {
     @Test
     public void processFailure_doesNotBurnId_reprocessable() {
         var req = validReq();
-        doThrow(new RuntimeException("boom")).doNothing().when(workloadService).process(req);
-
+        when(workloadService.process(req)).thenReturn(Mono.error(new RuntimeException("boom")), Mono.empty());
         assertThrows(RuntimeException.class, () -> listener.onWorkload(req, "tx-1", "m-1"));
         listener.onWorkload(req, "tx-1", "m-1");
-
         verify(workloadService, times(2)).process(req);
     }
 

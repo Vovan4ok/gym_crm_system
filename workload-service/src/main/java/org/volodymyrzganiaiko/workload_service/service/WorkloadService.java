@@ -6,6 +6,7 @@ import org.volodymyrzganiaiko.workload_service.domain.TrainerWorkload;
 import org.volodymyrzganiaiko.workload_service.domain.TrainerWorkload.*;
 import org.volodymyrzganiaiko.workload_service.dto.*;
 import org.volodymyrzganiaiko.workload_service.repository.TrainerWorkloadRepository;
+import reactor.core.publisher.Mono;
 
 import java.time.Month;
 import java.util.*;
@@ -19,46 +20,29 @@ public class WorkloadService {
         this.repository = repository;
     }
 
-    public void process(TrainerWorkloadRequest request) {
-        int year = request.trainingDate().getYear();
-        Month month = request.trainingDate().getMonth();
-        log.info("Processing workload event: trainer={}, action={}, minutes={}",
-                request.trainerUsername(), request.actionType(), request.trainingDuration());
+    public Mono<Void> process(TrainerWorkloadRequest req) {
+        int year = req.trainingDate().getYear();
+        Month month = req.trainingDate().getMonth();
+        log.info("Processing workload event: trainer={}, action={}, minutes={}", req.trainerUsername(), req.actionType(), req.trainingDuration());
 
-        TrainerWorkload workload = repository.findByUsername(request.trainerUsername()).orElse(null);
-
-        if (request.actionType() == ActionType.ADD) {
-            if (workload == null) {
-                log.debug("No document for {}, creating a new one", request.trainerUsername());
-                workload = new TrainerWorkload(request.trainerUsername(), null, null, null, new ArrayList<>());
-            }
-            workload.setFirstName(request.firstName());
-            workload.setLastName(request.lastName());
-            workload.setActive(request.isActive());
-            MonthSummary monthSummary = findOrCreateMonth(workload, year, month);
-            monthSummary.setSummaryDuration(monthSummary.getSummaryDuration() + request.trainingDuration());
-            log.debug("Added {} min to {}/{} for {}", request.trainingDuration(), year, month, request.trainerUsername());
-            repository.save(workload);
-        } else {
-            if (workload == null) {
-                log.warn("DELETE for unknown trainer {}, ignoring", request.trainerUsername());
-                return;
-            }
-            subtract(workload, year, month, request.trainingDuration());
-            repository.save(workload);
-            log.debug("Subtracted {} min from {}/{} for {}", request.trainingDuration(), year, month, request.trainerUsername());
-        }
+        return repository.findByUsername(req.trainerUsername())
+                .map(existing -> applyDelta(existing, req, year, month))
+                .switchIfEmpty(Mono.defer(() -> onMissing(req, year, month)))
+                .flatMap(repository::save)
+                .then();
     }
 
-    public TrainerSummaryResponse getWorkload(String username) {
+    public Mono<TrainerSummaryResponse> getWorkload(String username) {
         log.debug("Fetching workload for {}", username);
-        TrainerWorkload workload = repository.findByUsername(username)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "The trainer with username " + username + " does not have any workload"));
+        return repository.findByUsername(username)
+                .map(this::toResponse)
+                .switchIfEmpty(Mono.error(new NoSuchElementException(
+                        "The trainer with username " + username + " does not have any workload")));
+    }
+
+    private TrainerSummaryResponse toResponse(TrainerWorkload workload) {
         return new TrainerSummaryResponse(
-                workload.getUsername(),
-                workload.getFirstName(),
-                workload.getLastName(),
+                workload.getUsername(), workload.getFirstName(), workload.getLastName(),
                 Boolean.TRUE.equals(workload.getActive()),
                 workload.getYears().stream()
                         .map(y -> new YearlySummaryResponse(y.getYear(),
@@ -66,6 +50,31 @@ public class WorkloadService {
                                         .map(m -> new MonthlySummaryResponse(m.getMonth(), m.getSummaryDuration()))
                                         .toList()))
                         .toList());
+    }
+
+    private TrainerWorkload applyDelta(TrainerWorkload workload, TrainerWorkloadRequest req, int year, Month month) {
+        if (req.actionType() == ActionType.ADD) {
+            workload.setFirstName(req.firstName());
+            workload.setLastName(req.lastName());
+            workload.setActive(req.isActive());
+            MonthSummary m = findOrCreateMonth(workload, year, month);
+            m.setSummaryDuration(m.getSummaryDuration() + req.trainingDuration());
+            log.debug("Added {} min to {}/{} for {}", req.trainingDuration(), year, month, req.trainerUsername());
+        } else {
+            subtract(workload, year, month, req.trainingDuration());
+            log.debug("Subtracted {} min from {}/{} for {}", req.trainingDuration(), year, month, req.trainerUsername());
+        }
+        return workload;
+    }
+
+    private Mono<TrainerWorkload> onMissing(TrainerWorkloadRequest req, int year, Month month) {
+        if (req.actionType() == ActionType.ADD) {
+            log.debug("No document for {}, creating a new one", req.trainerUsername());
+            TrainerWorkload fresh = new TrainerWorkload(req.trainerUsername(), null, null, null, new ArrayList<>());
+            return Mono.just(applyDelta(fresh, req, year, month));
+        }
+        log.warn("DELETE for unknown trainer {}, ignoring", req.trainerUsername());
+        return Mono.empty();
     }
 
     private MonthSummary findOrCreateMonth(TrainerWorkload workload, int year, Month month) {

@@ -8,9 +8,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.volodymyrzganiaiko.workload_service.domain.ProcessedMessage;
 import org.volodymyrzganiaiko.workload_service.repository.ProcessedMessageRepository;
+import reactor.core.publisher.Mono;
+
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,14 +27,15 @@ public class ProcessMessageStoreTest {
 
     @Test
     public void isProcessed() {
-        when(processedMessageRepository.existsById("id")).thenReturn(true);
+        when(processedMessageRepository.existsById("id")).thenReturn(Mono.just(true));
 
-        assertTrue(processMessageStore.isProcessed("id"));
+        assertEquals(Boolean.TRUE, processMessageStore.isProcessed("id").block());
     }
 
     @Test
     public void markProcessed() {
-        processMessageStore.markProcessed("id");
+        when(processedMessageRepository.save(any())).thenReturn(Mono.just(new ProcessedMessage("id", Instant.now())));
+        processMessageStore.markProcessed("id").block();
 
         ArgumentCaptor<ProcessedMessage> captor = ArgumentCaptor.forClass(ProcessedMessage.class);
         verify(processedMessageRepository).save(captor.capture());

@@ -10,13 +10,13 @@ import org.volodymyrzganiaiko.workload_service.dto.ActionType;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerSummaryResponse;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerWorkloadRequest;
 import org.volodymyrzganiaiko.workload_service.repository.TrainerWorkloadRepository;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -43,9 +43,10 @@ public class WorkloadServiceTest {
 
     @Test
     public void add_noDocument_creates() {
-        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.empty());
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Mono.empty());
+        when(repository.save(any())).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
 
-        workloadService.process(req(60, ActionType.ADD));
+        workloadService.process(req(60, ActionType.ADD)).block();
 
         verify(repository).save(argThat(w ->
                 w.getUsername().equals("Tra.Iner")
@@ -56,9 +57,10 @@ public class WorkloadServiceTest {
 
     @Test
     void add_existing_accumulates() {
-        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.of(existing(60)));
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Mono.just(existing(60)));
+        when(repository.save(any())).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
 
-        workloadService.process(req(30, ActionType.ADD));
+        workloadService.process(req(30, ActionType.ADD)).block();
 
         verify(repository).save(argThat(w ->
                 w.getYears().get(0).getMonths().get(0).getSummaryDuration() == 90));
@@ -66,26 +68,27 @@ public class WorkloadServiceTest {
 
     @Test
     void delete_toZero_removesMonthAndYear() {
-        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.of(existing(30)));
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Mono.just(existing(30)));
+        when(repository.save(any())).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
 
-        workloadService.process(req(30, ActionType.DELETE));
+        workloadService.process(req(30, ActionType.DELETE)).block();
 
         verify(repository).save(argThat(w -> w.getYears().isEmpty()));
     }
 
     @Test
     void delete_unknown_noSave() {
-        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.empty());
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Mono.empty());
 
-        workloadService.process(req(30, ActionType.DELETE));
+        workloadService.process(req(30, ActionType.DELETE)).block();
 
         verify(repository, never()).save(any());
     }
 
     @Test
     void getWorkload_found_maps() {
-        when(repository.findByUsername("Tra.Iner")).thenReturn(Optional.of(existing(60)));
-        TrainerSummaryResponse r = workloadService.getWorkload("Tra.Iner");
+        when(repository.findByUsername("Tra.Iner")).thenReturn(Mono.just(existing(60)));
+        TrainerSummaryResponse r = workloadService.getWorkload("Tra.Iner").block();
         assertEquals("Tra.Iner", r.username());
         assertTrue(r.active());
         assertEquals(2026, r.years().get(0).year());
@@ -95,7 +98,7 @@ public class WorkloadServiceTest {
 
     @Test
     void getWorkload_notFound_throws() {
-        when(repository.findByUsername("x")).thenReturn(Optional.empty());
-        assertThrows(NoSuchElementException.class, () -> workloadService.getWorkload("x"));
+        when(repository.findByUsername("x")).thenReturn(Mono.empty());
+        assertThrows(NoSuchElementException.class, () -> workloadService.getWorkload("x").block());
     }
 }

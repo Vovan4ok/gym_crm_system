@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.volodymyrzganiaiko.workload_service.AbstractMongoIT;
 import org.volodymyrzganiaiko.workload_service.domain.ProcessedMessage;
@@ -24,10 +24,10 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
     private TrainerWorkloadRepository repository;
 
     @Autowired
-    private MongoTemplate mongoTemplate;
+    private ReactiveMongoTemplate mongoTemplate;
 
     @BeforeEach
-    void clean() { repository.deleteAll(); }
+    void clean() { repository.deleteAll().block(); }
 
     private TrainerWorkload sample() {
         return new TrainerWorkload("Tra.Iner", "Tra", "Iner", true,
@@ -37,9 +37,9 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
 
     @Test
     public void saveAndFindByUsername() {
-        repository.save(sample());
+        repository.save(sample()).block();
 
-        TrainerWorkload found = repository.findByUsername("Tra.Iner").orElseThrow();
+        TrainerWorkload found = repository.findByUsername("Tra.Iner").block();
         assertEquals("Tra", found.getFirstName());
         assertTrue(found.getActive());
         assertEquals(2026, found.getYears().get(0).getYear());
@@ -49,30 +49,30 @@ class TrainerWorkloadRepositoryIT extends AbstractMongoIT {
 
     @Test
     public void updateSummaryDuration() {
-        repository.save(sample());
-        TrainerWorkload w = repository.findByUsername("Tra.Iner").orElseThrow();
+        repository.save(sample()).block();
+        TrainerWorkload w = repository.findByUsername("Tra.Iner").block();
         w.getYears().get(0).getMonths().get(0).setSummaryDuration(90);
-        repository.save(w);
+        repository.save(w).block();
 
-        TrainerWorkload updated = repository.findByUsername("Tra.Iner").orElseThrow();
+        TrainerWorkload updated = repository.findByUsername("Tra.Iner").block();
         assertEquals(90, updated.getYears().get(0).getMonths().get(0).getSummaryDuration());
     }
 
     @Test
     public void findByUsername_missing_empty() {
-        assertTrue(repository.findByUsername("nobody").isEmpty());
+        assertTrue(repository.findByUsername("nobody").blockOptional().isEmpty());
     }
 
     @Test
     public void compoundNameIndexExists() {
-        List<IndexInfo> indexes = mongoTemplate.indexOps(TrainerWorkload.class).getIndexInfo();
+        List<IndexInfo> indexes = mongoTemplate.indexOps(TrainerWorkload.class).getIndexInfo().collectList().block();
         boolean hasNameIndex = indexes.stream().anyMatch(i -> "idx_name".equals(i.getName()));
         assertTrue(hasNameIndex, "compound firstName+lastName index must exist");
     }
 
     @Test
     void processedMessageHasTtlIndex() {
-        boolean hasTtl = mongoTemplate.indexOps(ProcessedMessage.class).getIndexInfo().stream()
+        boolean hasTtl = mongoTemplate.indexOps(ProcessedMessage.class).getIndexInfo().collectList().block().stream()
                 .anyMatch(i -> i.getExpireAfter().isPresent());
         assertTrue(hasTtl, "processed_messages must have a TTL index");
     }

@@ -12,6 +12,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.volodymyrzganiaiko.workload_service.dto.TrainerWorkloadRequest;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
+import reactor.core.publisher.Mono;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,18 +55,29 @@ public class WorkloadMessageListener {
                 });
                 return;
             }
-            if (messageId != null && processMessageStore.isProcessed(messageId)) {
-                log.info("Duplicate workload message {}, skipping", messageId);
-                return;
+            Mono<Void> pipeline;
+            if (messageId == null) {
+                pipeline = processAndLog(request);
+            } else {
+                pipeline = processMessageStore.isProcessed(messageId)
+                        .flatMap(seen -> {
+                            if (seen) {
+                                log.info("Duplicate workload message {}, skipping", messageId);
+                                return Mono.empty();
+                            }
+                            return processAndLog(request)
+                                    .then(processMessageStore.markProcessed(messageId));   // mark ПІСЛЯ process
+                        });
             }
-            log.info("Received workload message: trainer={}, action={}, minutes={}",
-                    request.trainerUsername(), request.actionType(), request.trainingDuration());
-            workloadService.process(request);
-            if (messageId != null) {
-                processMessageStore.markProcessed(messageId);
-            }
+            pipeline.block();
         } finally {
             MDC.clear();
         }
+    }
+
+    private Mono<Void> processAndLog(TrainerWorkloadRequest request) {
+        log.info("Received workload message: trainer={}, action={}, minutes={}",
+                request.trainerUsername(), request.actionType(), request.trainingDuration());
+        return workloadService.process(request);
     }
 }
