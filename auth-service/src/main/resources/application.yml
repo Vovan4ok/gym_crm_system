@@ -1,6 +1,14 @@
 spring:
   application:
     name: auth-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/gym_crm}
+    username: ${SPRING_DATASOURCE_USERNAME:gym_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:gym_pass}
+    jpa:
+      hibernate:
+        ddl-auto: none
+      open-in-view: false
 server:
   port: 8082
 management:
