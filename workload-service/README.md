@@ -15,7 +15,18 @@ maintains a per-trainer monthly workload summary.
 - `correlationId` travels as a JMS property and is restored into the MDC for
   end-to-end tracing.
 
-## Persistence (MongoDB)
+## Persistence (MongoDB, reactive)
+Persistence uses **reactive** Spring Data MongoDB (`ReactiveMongoRepository`,
+`Mono`/`Flux`): `WorkloadService` composes the read-modify-save flow as a
+`Mono`, and the store's de-dup checks are reactive too. Note the **consumer
+stays blocking** — ActiveMQ Classic + JMS (`@JmsListener`) has no reactive
+consumption, so the listener composes the reactive chain and `.block()`s it,
+which keeps JMS acknowledgement, redelivery, DLQ and idempotency intact (a
+message is only acked after its `Mono` completes; an error rolls back and
+redelivers). The web layer is likewise servlet MVC — the controller blocks the
+service `Mono` at the edge. The reactive part is the MongoDB access, not the
+transport.
+
 The per-trainer summary is stored as a MongoDB document (`trainer_workloads`),
 keyed by username, with the year/month breakdown as nested lists and a compound
 index on first + last name. `TrainerWorkloadRepository` (Spring Data Mongo)
