@@ -36,14 +36,14 @@ public class RefreshTokenServiceTest {
 
     @Test
     public void validateAndRotate_expiredToken_throws() {
-        refreshTokenService = new RefreshTokenService(0);
+        refreshTokenService = new RefreshTokenService(-1);
         String token = refreshTokenService.issue("u");
         assertThrows(InvalidRefreshTokenException.class, () -> refreshTokenService.validateAndRotate(token));
     }
 
     @Test
     public void purgeExpired_removesExpired() {
-        refreshTokenService = new RefreshTokenService(0);
+        refreshTokenService = new RefreshTokenService(-1);
         String token = refreshTokenService.issue("u");
         refreshTokenService.purgeExpired();
         assertThrows(InvalidRefreshTokenException.class, () -> refreshTokenService.validateAndRotate(token));

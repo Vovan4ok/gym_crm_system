@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: gym_crm_postgres
     environment:
       POSTGRES_DB: gym_crm
       POSTGRES_USER: gym_user
@@ -15,6 +14,7 @@ services:
       retries: 5
 
   auth-service:
+    image: gym-crm/auth-service:latest
     build:
       context: .
       dockerfile: auth-service/Dockerfile
@@ -25,8 +25,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s -o /dev/null http://localhost:8082/actuator/health || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
 
   workload-service:
+    image: gym-crm/workload-service:latest
     build:
       context: .
       dockerfile: workload-service/Dockerfile
@@ -40,8 +47,15 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s -o /dev/null http://localhost:8081/actuator/health || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
 
   gym-service:
+    image: gym-crm/gym-service:latest
     build:
       context: .
       dockerfile: gym-service/Dockerfile
@@ -53,6 +67,12 @@ services:
         condition: service_healthy
       activemq:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s -o /dev/null http://localhost:8080/actuator/health || exit 1" ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
 
   activemq:
     image: apache/activemq-classic:5.18.3
@@ -70,6 +90,7 @@ services:
       start_period: 20s
 
   gateway-service:
+    image: gym-crm/gateway-service:latest
     build:
       context: .
       dockerfile: gateway-service/Dockerfile
@@ -79,9 +100,12 @@ services:
       WORKLOAD_URI: http://workload-service:8081
       AUTH_URI: http://auth-service:8082
     depends_on:
-      - gym-service
-      - workload-service
-      - auth-service
+      auth-service:
+        condition: service_healthy
+      gym-service:
+        condition: service_healthy
+      workload-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
   mongodb:

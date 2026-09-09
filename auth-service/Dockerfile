@@ -6,6 +6,7 @@ COPY auth-service/pom.xml auth-service/
 COPY gym-service/pom.xml gym-service/
 COPY workload-service/pom.xml workload-service/
 COPY gateway-service/pom.xml gateway-service/
+COPY integration-tests/pom.xml integration-tests/
 COPY config/ config/
 RUN mvn -q -pl auth-service -am dependency:go-offline
 COPY auth-service/src auth-service/src

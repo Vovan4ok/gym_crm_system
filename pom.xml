@@ -28,6 +28,7 @@
         <module>gym-service</module>
         <module>workload-service</module>
         <module>gateway-service</module>
+        <module>integration-tests</module>
     </modules>
 
     <dependencyManagement>
@@ -36,6 +37,13 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-bom</artifactId>
+                <version>7.18.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
