@@ -1,0 +1,15 @@
+package org.volodymyrzganiaiko.workload_service.cucumber.world;
+
+import io.cucumber.spring.ScenarioScope;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+
+@Component
+@ScenarioScope
+@Setter
+@Getter
+public class ScenarioContext {
+    private ResponseEntity<String> lastResponse;
+}
