@@ -1,5 +1,9 @@
 package org.volodymyrzganiaiko.workload_service.rpc;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.Status;
@@ -20,7 +24,10 @@ import org.volodymyrzganiaiko.workload_service.grpc.GetWorkloadRequest;
 import org.volodymyrzganiaiko.workload_service.grpc.GetWorkloadResponse;
 import org.volodymyrzganiaiko.workload_service.grpc.WorkloadServiceGrpc;
 import org.volodymyrzganiaiko.workload_service.service.WorkloadService;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -116,6 +123,30 @@ public class WorkloadGrpcServiceTest {
 
         assertEquals(Status.Code.INTERNAL, ex.getStatus().getCode());
         assertEquals("Internal error", ex.getStatus().getDescription());
+    }
+
+    @Test
+    public void getWorkload_errorOnAnotherThread_isLoggedWithTheCorrelationId() {
+        ListAppender<ILoggingEvent> logs = new ListAppender<>();
+        logs.start();
+        Logger logger = (Logger) LoggerFactory.getLogger(WorkloadGrpcService.class);
+        logger.addAppender(logs);
+        MDC.put("correlationId", "abc-123");
+        try {
+            // The error is emitted on a Reactor worker thread, as with the real MongoDB driver.
+            when(workloadService.getWorkload("Tra.Iner")).thenReturn(Mono.<TrainerSummaryResponse>error(
+                    new IllegalStateException("boom")).subscribeOn(Schedulers.boundedElastic()));
+
+            assertThrows(StatusRuntimeException.class, () -> stub.getWorkload(request("Tra.Iner")));
+
+            ILoggingEvent error = logs.list.stream()
+                    .filter(e -> e.getLevel() == Level.ERROR).findFirst().orElseThrow();
+            assertNotEquals(Thread.currentThread().getName(), error.getThreadName());
+            assertEquals("abc-123", error.getMDCPropertyMap().get("correlationId"));
+        } finally {
+            logger.detachAppender(logs);
+            MDC.clear();
+        }
     }
 
     @Test

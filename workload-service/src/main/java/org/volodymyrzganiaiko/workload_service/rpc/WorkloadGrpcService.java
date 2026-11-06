@@ -5,6 +5,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.volodymyrzganiaiko.workload_service.grpc.GetWorkloadRequest;
 import org.volodymyrzganiaiko.workload_service.grpc.GetWorkloadResponse;
@@ -44,6 +45,9 @@ public class WorkloadGrpcService extends WorkloadServiceGrpc.WorkloadServiceImpl
             return;
         }
         log.info("gRPC GetWorkload for {}", username);
+        // Set by CorrelationIdServerInterceptor on this thread. The Mono's callbacks
+        // run on a MongoDB driver thread without it, so it is restored there.
+        String correlationId = MDC.get(CorrelationIdServerInterceptor.MDC_KEY);
 
         // If the client cancels or its deadline expires, stop the Mongo query.
         // Registered before subscribing, because the Mono may complete immediately.
@@ -56,7 +60,8 @@ public class WorkloadGrpcService extends WorkloadServiceGrpc.WorkloadServiceImpl
                 .map(mapper::toProto)
                 .subscribe(
                         responseObserver::onNext,
-                        error -> responseObserver.onError(toStatus(error, username)),
+                        error -> CorrelationIdServerInterceptor.withCorrelationId(correlationId,
+                                () -> responseObserver.onError(toStatus(error, username))),
                         responseObserver::onCompleted));
     }
 
