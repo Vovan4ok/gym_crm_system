@@ -141,6 +141,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- gRPC contract (generated messages + stubs) for the workload API -->
+        <dependency>
+            <groupId>org.volodymyrzganiaiko</groupId>
+            <artifactId>grpc-contract</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
