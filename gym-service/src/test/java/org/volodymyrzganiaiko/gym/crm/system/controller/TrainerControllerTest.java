@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadUnavailableException;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainer;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
 import org.volodymyrzganiaiko.gym.crm.system.facade.GymFacade;
@@ -52,6 +53,40 @@ public class TrainerControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .build();
+    }
+
+    @Test
+    public void getWorkload_success() throws Exception {
+        TrainerWorkloadResponse response = new TrainerWorkloadResponse("Tra.Iner", "John", "Doe", true,
+                List.of(new TrainerWorkloadResponse.Year(2026,
+                        List.of(new TrainerWorkloadResponse.MonthTotal(java.time.Month.JULY, 90)))));
+        when(gymFacade.getTrainerWorkload("Tra.Iner")).thenReturn(response);
+
+        mockMvc.perform(get("/api/trainers/{username}/workload", "Tra.Iner"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("Tra.Iner"))
+                .andExpect(jsonPath("$.years[0].year").value(2026))
+                .andExpect(jsonPath("$.years[0].months[0].month").value("JULY"))
+                .andExpect(jsonPath("$.years[0].months[0].summaryDuration").value(90));
+    }
+
+    @Test
+    public void getWorkload_workloadServiceDown_returns503() throws Exception {
+        when(gymFacade.getTrainerWorkload("Tra.Iner"))
+                .thenThrow(new WorkloadUnavailableException("Workload service is temporarily unavailable", null));
+
+        mockMvc.perform(get("/api/trainers/{username}/workload", "Tra.Iner"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("Workload service is temporarily unavailable"));
+    }
+
+    @Test
+    public void getWorkload_unknownTrainer_returns404() throws Exception {
+        when(gymFacade.getTrainerWorkload("No.One"))
+                .thenThrow(new IllegalArgumentException("Trainer with the username No.One was not found"));
+
+        mockMvc.perform(get("/api/trainers/{username}/workload", "No.One"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

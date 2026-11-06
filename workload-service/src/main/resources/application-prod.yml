@@ -4,3 +4,11 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI}
+  grpc:
+    server:
+      # Reflection lets any caller list every service and method (e.g. grpcurl).
+      # It is inactive today (it needs io.grpc:grpc-services, not on the classpath),
+      # but the property defaults to true: this keeps it off in production even if
+      # grpc-services is added later, e.g. for the gRPC health service.
+      reflection:
+        enabled: false

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadUnavailableException;
 import org.volodymyrzganiaiko.gym.crm.system.dto.ErrorResponse;
 
 import jakarta.validation.ConstraintViolationException;
@@ -64,6 +65,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .collect(Collectors.joining(", "));
         log.warn("Method invalid argument {}", message);
         return buildResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(WorkloadUnavailableException.class)
+    public ResponseEntity<Object> handleWorkloadUnavailable(WorkloadUnavailableException ex) {
+        log.warn("Workload service unavailable {}", ex.getMessage());
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

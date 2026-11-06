@@ -40,6 +40,10 @@ services:
     environment:
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
       MONGODB_URI: mongodb://mongodb:27017/workload
+    # gRPC API for gym-service, reachable on the internal network only.
+    # Never add it to "ports": the gRPC port has no authentication of its own.
+    expose:
+      - "9090"
     depends_on:
       auth-service:
         condition: service_started
@@ -62,6 +66,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gym_crm
       ACTIVEMQ_BROKER_URL: tcp://activemq:61616
+      WORKLOAD_GRPC_ADDRESS: static://workload-service:9090
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,8 +111,10 @@ services:
         condition: service_healthy
       workload-service:
         condition: service_healthy
+    # The only port published to the host. GATEWAY_PORT picks another host port
+    # when 8080 is taken (the integration tests pass a free one).
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT:-8080}:8080"
   mongodb:
     image: mongo:7
     volumes:
