@@ -93,6 +93,20 @@ public class TrainerController {
         return ResponseEntity.ok(gymFacade.getTrainerTrainings(username, from, to, traineeName));
     }
 
+    @PreAuthorize("#username == authentication.name")
+    @GetMapping("/{username}/workload")
+    @Operation(summary = "Get the workload of a trainer", description = "Returns the trainer's training minutes grouped by year and month, fetched from workload-service over gRPC. A trainer without trainings gets an empty list.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Workload returned"),
+            @ApiResponse(responseCode = "401", description = "Wrong username or password"),
+            @ApiResponse(responseCode = "403", description = "A trainer can only read their own workload"),
+            @ApiResponse(responseCode = "404", description = "The trainer was not found"),
+            @ApiResponse(responseCode = "503", description = "workload-service is temporarily unavailable")
+    })
+    public ResponseEntity<TrainerWorkloadResponse> getWorkload(@PathVariable String username) {
+        return ResponseEntity.ok(gymFacade.getTrainerWorkload(username));
+    }
+
     private Trainer mapTrainer(String firstName, String lastName, Boolean isActive, TrainingType specialization) {
         Trainer trainer = new Trainer();
         trainer.setFirstName(firstName);

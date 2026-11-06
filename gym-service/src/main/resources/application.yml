@@ -16,6 +16,17 @@ spring:
   activemq:
     user: admin
     password: admin
+  grpc:
+    client:
+      channels:
+        # Internal gRPC API of workload-service (trainer workload queries)
+        workload:
+          address: ${WORKLOAD_GRPC_ADDRESS:static://localhost:9090}
+
+workload:
+  grpc:
+    # Per-call deadline for workload queries: fail fast instead of hanging a request thread
+    deadline: 2s
 
 springdoc:
   api-docs:

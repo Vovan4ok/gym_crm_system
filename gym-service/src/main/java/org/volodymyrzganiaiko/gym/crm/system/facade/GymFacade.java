@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
 import org.volodymyrzganiaiko.gym.crm.system.dao.OutboxDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.OutboxMessage;
 import org.volodymyrzganiaiko.gym.crm.system.domain.Trainee;
@@ -41,12 +42,13 @@ public class GymFacade {
     private final OutboxDAO outboxDAO;
     private final ObjectMapper objectMapper;
     private final String workloadQueue;
+    private final WorkloadClient workloadClient;
 
     private static final int MAX_REGISTRATION_ATTEMPTS = 3;
     private static final Logger log =  LoggerFactory.getLogger(GymFacade.class);
 
     @Autowired
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, OutboxDAO outboxDAO, ObjectMapper objectMapper, @Value("${messaging.workload-queue}") String workloadQueue) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, TrainingTypeService trainingTypeService, CredentialsService credentialsService, UserService userService, DtoMapper mapper, GymMetrics gymMetrics, OutboxDAO outboxDAO, ObjectMapper objectMapper, @Value("${messaging.workload-queue}") String workloadQueue, WorkloadClient workloadClient) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -58,6 +60,7 @@ public class GymFacade {
         this.outboxDAO = outboxDAO;
         this.objectMapper = objectMapper;
         this.workloadQueue = workloadQueue;
+        this.workloadClient = workloadClient;
     }
 
     @Transactional
@@ -119,6 +122,20 @@ public class GymFacade {
     public TrainerProfileResponse getTrainerProfile(String username) {
         Trainer trainer = trainerService.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Trainer with the username " + username + " was not found"));
         return mapper.mapTrainerToTrainerProfileResponse(trainer);
+    }
+
+    /**
+     * Not @Transactional on purpose: the trainer lookup runs in its own short
+     * read-only transaction, and the remote gRPC call must not hold a database
+     * connection open while it waits for workload-service.
+     */
+    public TrainerWorkloadResponse getTrainerWorkload(String username) {
+        Trainer trainer = trainerService.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Trainer with the username " + username + " was not found"));
+        // workload-service only knows trainers that have had a training; for the
+        // rest it answers NOT_FOUND, which here means "no workload yet", not 404.
+        return workloadClient.findWorkload(username)
+                .orElseGet(() -> new TrainerWorkloadResponse(trainer.getUsername(), trainer.getFirstName(),
+                        trainer.getLastName(), trainer.getIsActive(), List.of()));
     }
 
     @Transactional

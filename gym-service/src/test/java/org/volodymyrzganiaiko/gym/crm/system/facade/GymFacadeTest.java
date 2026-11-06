@@ -9,6 +9,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadClient;
+import org.volodymyrzganiaiko.gym.crm.system.client.WorkloadUnavailableException;
 import org.volodymyrzganiaiko.gym.crm.system.dao.OutboxDAO;
 import org.volodymyrzganiaiko.gym.crm.system.domain.*;
 import org.volodymyrzganiaiko.gym.crm.system.dto.*;
@@ -55,6 +57,9 @@ class GymFacadeTest {
     @Mock
     private OutboxDAO outboxDAO;
 
+    @Mock
+    private WorkloadClient workloadClient;
+
     private final ObjectMapper objectMapper =
             new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -65,7 +70,7 @@ class GymFacadeTest {
         gymFacade = new GymFacade(
                 traineeService, trainerService, trainingService, trainingTypeService,
                 credentialsService, userService, dtoMapper, gymMetrics,
-                outboxDAO, objectMapper, "queue");
+                outboxDAO, objectMapper, "queue", workloadClient);
     }
 
     @Test
@@ -256,6 +261,56 @@ class GymFacadeTest {
 
         assertEquals(expected, result);
         
+    }
+
+    private Trainer trainer(String username) {
+        Trainer trainer = new Trainer();
+        trainer.setUsername(username);
+        trainer.setFirstName("Tra");
+        trainer.setLastName("Iner");
+        trainer.setIsActive(true);
+        return trainer;
+    }
+
+    @Test
+    public void getTrainerWorkload_returnsWorkloadFromWorkloadService() {
+        TrainerWorkloadResponse workload = new TrainerWorkloadResponse("Tra.Iner", "Tra", "Iner", true,
+                List.of(new TrainerWorkloadResponse.Year(2026,
+                        List.of(new TrainerWorkloadResponse.MonthTotal(java.time.Month.JULY, 90)))));
+        when(trainerService.findByUsername("Tra.Iner")).thenReturn(Optional.of(trainer("Tra.Iner")));
+        when(workloadClient.findWorkload("Tra.Iner")).thenReturn(Optional.of(workload));
+
+        assertEquals(workload, gymFacade.getTrainerWorkload("Tra.Iner"));
+    }
+
+    @Test
+    public void getTrainerWorkload_trainerWithoutTrainings_returnsEmptyWorkload() {
+        when(trainerService.findByUsername("Tra.Iner")).thenReturn(Optional.of(trainer("Tra.Iner")));
+        when(workloadClient.findWorkload("Tra.Iner")).thenReturn(Optional.empty());
+
+        TrainerWorkloadResponse result = gymFacade.getTrainerWorkload("Tra.Iner");
+
+        assertEquals("Tra.Iner", result.username());
+        assertEquals("Tra", result.firstName());
+        assertTrue(result.isActive());
+        assertTrue(result.years().isEmpty());
+    }
+
+    @Test
+    public void getTrainerWorkload_unknownTrainer_throwsWithoutCallingWorkloadService() {
+        when(trainerService.findByUsername("No.One")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> gymFacade.getTrainerWorkload("No.One"));
+        verifyNoInteractions(workloadClient);
+    }
+
+    @Test
+    public void getTrainerWorkload_workloadServiceDown_propagates() {
+        when(trainerService.findByUsername("Tra.Iner")).thenReturn(Optional.of(trainer("Tra.Iner")));
+        when(workloadClient.findWorkload("Tra.Iner"))
+                .thenThrow(new WorkloadUnavailableException("down", null));
+
+        assertThrows(WorkloadUnavailableException.class, () -> gymFacade.getTrainerWorkload("Tra.Iner"));
     }
 
     @Test
