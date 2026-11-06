@@ -17,6 +17,15 @@ Static routes (no service discovery). `/api/login` is split by HTTP method:
 
 Targets are configured via `GYM_URI` / `WORKLOAD_URI` / `AUTH_URI`.
 
+The gateway speaks HTTP/JSON only. `GET /api/trainers/{username}/workload` goes
+to gym-service like every `/api/trainers/**` call; gym-service then queries
+workload-service over gRPC on the internal network. That gRPC port is never
+routed or published.
+
+The gateway is the only container with a host port: `${GATEWAY_PORT:-8080}`
+in `docker-compose.yml` (e.g. `GATEWAY_PORT=18080 docker compose up` when 8080
+is taken).
+
 ## Authentication at the edge
 The gateway is an OAuth2 resource server: it validates the JWT (JWKS from
 auth-service, `AUTH_JWKS_URI`) on every protected route. Registration, login
