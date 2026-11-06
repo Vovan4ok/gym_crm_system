@@ -1,6 +1,7 @@
 package org.volodymyrzganiaiko.integration_tests;
 
 import org.testcontainers.containers.ComposeContainer;
+import org.testcontainers.containers.ContainerState;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
@@ -23,6 +24,12 @@ public class AbstractE2EIT {
 
     protected String gatewayUrl() {
         return "http://localhost:" + GATEWAY_PORT;
+    }
+
+    /** One container of the running stack, e.g. to stop and start it in a scenario. */
+    protected static ContainerState service(String serviceName) {
+        return STACK.getContainerByServiceName(serviceName)
+                .orElseThrow(() -> new IllegalStateException("No running compose service " + serviceName));
     }
 
     private static int freePort() {
